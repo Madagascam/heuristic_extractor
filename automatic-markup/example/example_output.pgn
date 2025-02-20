@@ -1,0 +1,43 @@
+[Event "Rated rapid game"]
+[Site "https://lichess.org/GIrocKDB"]
+[Date "2024.07.06"]
+[Round "?"]
+[White "tahiantsoa-rajo"]
+[Black "Bolatkhan1"]
+[Result "1-0"]
+[GameId "GIrocKDB"]
+[UTCDate "2024.07.06"]
+[UTCTime "05:47:36"]
+[WhiteElo "1833"]
+[BlackElo "1837"]
+[WhiteRatingDiff "+10"]
+[BlackRatingDiff "-6"]
+[Variant "Standard"]
+[TimeControl "600+5"]
+[ECO "C46"]
+[Opening "Three Knights Opening"]
+[Termination "Normal"]
+
+1. e4 { [%eval 0.29] } 1... e5 { [%eval 0.25] } 2. Nf3 { [%eval 0.20] } 2...
+Nc6 { [%eval 0.22] } 3. Nc3 { [%eval 0.04] } 3... Bc5 { [%eval 0.62] } 4. Bb5
+{ [%eval 0.01] } 4... d6 { [%eval 0.31] } 5. O-O { [%eval 0.10] } 5... a6
+{ [%eval 0.24] } 6. Ba4 { [%eval -0.11] } 6... Bg4 { [%eval 0.36] } 7. h3
+{ [%eval 0.21] } 7... Bh5 { [%eval 0.41] } 8. d3 { [%eval -0.10] } 8... b5
+{ [%eval 0.04] } 9. Bb3 { [%eval 0.08] } 9... Nd4 { [%eval 0.28] } 10. g4
+{ [%eval 0.25] } 10... Bg6 { [%eval 1.08] } 11. Nxd4 { [%eval 1.07] } 11...
+Bxd4 { [%eval 1.16] } 12. Qf3 { [%eval 0.16] } 12... c6 { [%eval 0.98] } 13.
+Ne2 { [%eval 1.05] } 13... Ba7 { [%eval 1.14] } 14. c3 { [%eval 0.27] } 14...
+Qf6 { [%eval 1.19] } 15. Qxf6 { [%eval 0.81] } 15... Nxf6 { [%eval 0.94] } 16.
+Ng3 { [%eval 0.39] } 16... h5 { [%eval 0.43] } 17. gxh5 { [%eval -0.48] } 17...
+Nxh5 { [%eval -0.48] } 18. Kg2 { [%eval -0.50] } 18... Ke7 { [%eval -0.32] }
+19. f4 { [%eval -0.26] } 19... exf4 { [%eval 0.05] } 20. Bxf4 { [%eval -0.01] }
+20... Nxg3 { [%eval 0.00] } 21. Bxg3 { [%eval 0.00] } 21... Rh7
+{ [%eval 0.31] } 22. Bf4 { [%eval -0.04] } 22... Rah8 { [%eval -0.06] } 23. Rf3
+{ [%eval -0.32] } 23... f6 { [%eval -0.36] } 24. Be3 { [%eval -0.66] } 24...
+Bb8 { [%eval -0.11] } 25. Rg3 { [%eval -0.72] } 25... Bf7 { [%eval -0.09] } 26.
+Bd1 { [%eval -2.01] } 26... d5 { [%eval -2.30] } 27. Rf3 { [%eval -3.26] }
+27... Bh5 { [%eval -2.04] } 28. Rf5 { [%eval -3.73] } 28... Bxd1
+{ [%eval -3.88] } 29. Rxd1 { [%eval -4.13] } 29... Rxh3 { [%eval -4.21] } 30.
+Bc5+ { [%eval -4.67] } 30... Ke6 { [%eval -4.75] } 31. Rf3 { [%eval -5.08] }
+31... dxe4 { [%eval 4.73] } 32. Rxh3 { [%eval 4.67] } 1-0
+

@@ -1,0 +1,22 @@
+[Event "Rated rapid game"]
+[Site "https://lichess.org/GIrocKDB"]
+[Date "2024.07.06"]
+[White "tahiantsoa-rajo"]
+[Black "Bolatkhan1"]
+[Result "1-0"]
+[GameId "GIrocKDB"]
+[UTCDate "2024.07.06"]
+[UTCTime "05:47:36"]
+[WhiteElo "1833"]
+[BlackElo "1837"]
+[WhiteRatingDiff "+10"]
+[BlackRatingDiff "-6"]
+[Variant "Standard"]
+[TimeControl "600+5"]
+[ECO "C46"]
+[Opening "Three Knights Opening"]
+[Termination "Normal"]
+
+1. e4 e5 2. Nf3 Nc6 3. Nc3 Bc5 4. Bb5 d6 5. O-O a6 6. Ba4 Bg4 7. h3 Bh5 8. d3 b5 9. Bb3 Nd4 10. g4 Bg6 11. Nxd4 Bxd4 12. Qf3 c6 13. Ne2 Ba7 14. c3 Qf6 15. Qxf6 Nxf6 16. Ng3 h5 17. gxh5 Nxh5 18. Kg2 Ke7 19. f4 exf4 20. Bxf4 Nxg3 21. Bxg3 Rh7 22. Bf4 Rah8 23. Rf3 f6 24. Be3 Bb8 25. Rg3 Bf7 26. Bd1 d5 27. Rf3 Bh5 28. Rf5 Bxd1 29. Rxd1 Rxh3 30. Bc5+ Ke6 31. Rf3 dxe4 32. Rxh3 1-0
+
+
