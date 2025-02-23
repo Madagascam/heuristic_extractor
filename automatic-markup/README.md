@@ -71,3 +71,36 @@ with chess.engine.SimpleEngine.popen_uci(path_to_stockfish) as engine:
     generator = Generator(engine)
     generator.generate_interesting(input_pgn, output_json)
 ```
+
+
+### finisher.py
+
+Этот скрипт использует шахматный движок **MAIA Engine** для завершения партий, которые могли быть обрезаны после выполнения скрипта `generator.py`.
+
+#### Требования
+- Установите шахматный движок [lc0](https://lczero.org/play/download/).
+- Разархивируйте архив в одну директорию со скриптом `finisher.py`.
+- Убедитесь, что имя папки с движком — **`lc0`**.
+
+#### Методы класса `MaiaEngine`
+- **`upload_game(path_to_json)`** — загружает партию из JSON-файла.  
+  Формат файла соответствует [примеру](https://github.com/Madagascam/heuristic_extractor/blob/feature/algo-gen-data/automatic-markup/example/example_markup.json).
+
+- **`finish_game()`** — завершает загруженную партию.
+
+- **`output_info(path_to_output_json)`** — сохраняет завершённую партию в JSON-файл. Формат выхода совпадает с форматом входного файла.
+
+---
+
+### Пример использования
+```python
+with MaiaEngine() as eng:
+    eng.upload_game("example_markup1.json")
+    eng.finish_game()
+    eng.output_info("output1.json")
+
+    eng.upload_game("example_markup2.json")
+    eng.finish_game()
+    eng.output_info("output2.json")
+```
+---
