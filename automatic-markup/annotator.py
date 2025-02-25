@@ -2,6 +2,8 @@ import argparse
 import chess
 import chess.pgn
 import chess.engine
+import os
+from exceptions import UnexpectedEOF
 
 
 class Annotator:
@@ -26,7 +28,7 @@ class Annotator:
         
         return game
 
-    def add_annotations(self, input_pgn: str, output_pgn: str = None, overwrite: bool = False) -> None:
+    def add_annotations(self, input_pgn: str, output_pgn: str, skip: int = 0, quantity: int = 1, clean: bool = False) -> None:
         """
         Читает партию из input_pgn, делает анализ и
         сохраняет результат в output_pgn
@@ -35,36 +37,65 @@ class Annotator:
         ---------
         input_pgn: str
             Путь к файлу, для которого нужно сделать аннотацию.
-        output_pgn: str = None
+        output_pgn: str
             Путь, по которому следует сохранить партию с аннотациями.
-        overwrite: bool = False
-            Если не указывать output_pgn, зато указать overwrite = True,
-            файл с аннотациями перезапишет исходный файл.
+        clean: bool = False
+            Очищает файл output_pgn перед записью
+        skip: int = 0
+            Количество партий, которые нужно пропустить от начала партий
+        quantity: int = 1
+            Количество партий, которые нужно обработать
+
+        Исключения
+        ----------
+        ValueError:
+            1. Если не удалось создать файл или путь некорректный
+            2. Если не удалось очистить файл
+        UnexpectedEOF:
+            1. Если количество партий в файле меньше, чем требуется пропустить (skip)
+            2. Если количество партий в файле меньше, чем требуется пропустить и обработать (skip + quantity)
         """
 
-        # Если путь некорректный, будем считать, что output_pgn = None
+        # Создание файла (если его нет)
         try:
-            with open(output_pgn, 'w') as file:
-                pass
-        except:
-            output_pgn = None
+            if not os.path.exists(output_pgn):
+                # Если файл не существует, создаём его
+                with open(output_pgn, 'x') as f:
+                    pass
+        except Exception as e:
+            raise ValueError(f"Не удалось создать файл {output_pgn}. Ошибка: {e}")
 
-        # Если пользователь забыл разрешить перезапись, при этом путь некорректный, вызываем ошибку
-        if overwrite == False and output_pgn is None:
-            raise ValueError("Укажите или проверьте файл для сохранения, либо разрешите перезапись.")
-        if overwrite == True:
-            output_pgn = input_pgn
+        # Очистка файла, если указан флаг clean
+        if clean:
+            try:
+                with open(output_pgn, 'w') as f:
+                    f.write('')  # Явно очищаем содержимое файла
+            except Exception as e:
+                raise ValueError(f"Не удалось очистить файл {output_pgn}. Ошибка: {e}")
 
-        # Читаем игру
         with open(input_pgn, 'r') as pgn:
-            game = chess.pgn.read_game(pgn)
-        
-        # Аннотируем
-        game = self.cook(game)
+            # Скипаем часть игр
+            for i in range(skip):
+                game = chess.pgn.read_game(pgn)
+                if game is None:
+                    raise UnexpectedEOF('В файле оказалось меньше партий, чем нужно пропустить')
+                print(f'Пропущено {i + 1}/{skip}', end='\r' if i < skip - 1 else '\n')
+            
+            # Обрабатываем игры
+            with open(output_pgn, 'a') as output_file:
+                for i in range(quantity):
+                    print(f'Обработка... {i + 1}/{quantity}', end=' ')
 
-        # Пишем в файл
-        exporter = chess.pgn.FileExporter(open(output_pgn, 'w'), headers=True, variations=True, comments=True)
-        game.accept(exporter)
+                    # Аннотируем
+                    game = chess.pgn.read_game(pgn)
+                    if game is None:
+                        raise UnexpectedEOF('В файле оказалось меньше партий, чем нужно пропустить и обработать')
+                    game = self.cook(game)
+            
+                    # Пишем в файл
+                    exporter = chess.pgn.FileExporter(output_file, headers=True, variations=True, comments=True)
+                    game.accept(exporter)
+                    print(f'Обработано {i + 1}/{quantity}', end='\r' if i < skip - 1 else '\n')
 
 
 def main():
@@ -74,8 +105,11 @@ def main():
         description='takes a pgn file and adds annotations to it'
     )
     parser.add_argument('--input', '-i', help='input pgn file', required=True)
-    parser.add_argument('--output', '-o', help='output png file', default='None')
-    parser.add_argument('--overwrite', help='overwrites the original file', action='store_true', default=False)
+    parser.add_argument('--output', '-o', help='output png file', required=True)
+    parser.add_argument('--skip', help='how many games would skipped from the beginning of the file', default=0)
+    parser.add_argument('--quantity', help='how many games would annotated', default=1)
+    parser.add_argument('--clean', help='WARNING! Clears the output_pgn file before processing', action='store_true', default=False)
+    parser.add_argument('-y', help='answer "yes" on all warnings', action='store_true', default=False)
     parser.add_argument('--stockfish', '-s', help='(engine settings) path to stockfish executable file', required=True)
     parser.add_argument('--depth', '-d', help='(engine settings) depth of analysis', default=16)
     parser.add_argument('--threads', '-t', help='(engine settings) threads to stockfish', default=1)
@@ -83,11 +117,18 @@ def main():
     # Парсим их
     args = parser.parse_args()
 
+    # Проверка опасного аргумента --clean
+    if args.clean and not args.y:
+        confirmation = input("WARNING: The '--clean' option will clear the output file. Are you sure? (Y/n): ").strip()
+        if confirmation != 'Y':
+            print("Operation cancelled. Exiting.")
+            return
+
     # Добавляем аннотации
     with chess.engine.SimpleEngine.popen_uci(args.stockfish) as engine:
         engine.configure({'Threads': args.threads})
         annotator = Annotator(engine, args.depth)
-        annotator.add_annotations(args.input, args.output, overwrite=args.overwrite)
+        annotator.add_annotations(args.input, args.output, skip=int(args.skip), quantity=int(args.quantity), clean=args.clean)
 
 
 if __name__ == '__main__':
