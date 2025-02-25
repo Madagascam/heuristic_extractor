@@ -108,7 +108,7 @@ def main():
     parser.add_argument('--output', '-o', help='output png file', required=True)
     parser.add_argument('--skip', help='how many games would skipped from the beginning of the file', default=0)
     parser.add_argument('--quantity', help='how many games would annotated', default=1)
-    parser.add_argument('--clean', help='WARNING! Clears the output_pgn file before processing', action='store_true', default=False)
+    parser.add_argument('--clean', help='WARNING! Clears the output file before processing', action='store_true', default=False)
     parser.add_argument('-y', help='answer "yes" on all warnings', action='store_true', default=False)
     parser.add_argument('--stockfish', '-s', help='(engine settings) path to stockfish executable file', required=True)
     parser.add_argument('--depth', '-d', help='(engine settings) depth of analysis', default=16)
