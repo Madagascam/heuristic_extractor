@@ -1,3 +1,9 @@
+"""
+Модуль генерирует разметку из партий в формате pgn.
+Последовательность ходов после генерации может
+обрывать партию, не завершая её матом.
+"""
+
 import argparse
 import copy
 import chess
@@ -252,9 +258,12 @@ class Generator:
             
             # if tier > 2 and len(adv_solution) <= 3:
             #     return None
-            
-            return [pair.best.move for pair in adv_solution]
-    
+
+            moves = [pair.best.move for pair in adv_solution]
+            if len(moves) < 3:
+                return None
+            return moves
+
         return None
         
 
