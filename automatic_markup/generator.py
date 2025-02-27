@@ -237,7 +237,7 @@ class Generator:
         if score >= chess.engine.Cp(200) and win_chances(score) > win_chances(previous_score) + 0.6:
             if score < chess.engine.Cp(400) and material_diff(board, winner) > -1:
                 logger.debug("Not clearly winning and not from being down in material, aborting")
-                return score
+                return None
             logger.debug('Пробуем получить преимущество...')
             adv_solution = self.cook_advantage(copy.deepcopy(node), winner)
             logger.debug(adv_solution)
