@@ -113,38 +113,48 @@ class Generator:
 
         return [move] + follow_up
 
-    def generate_interesting(self, input_pgn: str, output_file: str):
+    def generate_interesting(self, input_pgn: str, output_file: str, skip: int = 0, quantity: int = 1):
         with open(input_pgn, 'r') as pgn:
-            game = chess.pgn.read_game(pgn)
+            # Пропускаем партии
+            for i in range(skip):
+                game = chess.pgn.read_game(pgn)
+                print(f'Пропущено {i + 1}/{skip}', end='\r' if i < skip - 1 else '\n')
+            
+            # Обрабатываем партии
+            marked_games = []
+            for i in range(quantity):
+                print(f'Обработано {i}/{quantity}, обрабатывается {i + 1}...', end='\r' if i < quantity - 1 else '\n')
+                game = chess.pgn.read_game(pgn)
+                result = self.cook_interesting(game, get_tier(game))
 
-        result = self.cook_interesting(game, get_tier(game))
+                if result is not None:
+                    game_id = game.headers['GameId']
 
-        if result is not None:
-            game_id = game.headers['GameId']
+                    # Ходы и разметка
+                    moves: List[chess.Move] = result[0]
+                    marks: Tuple[int, int] = result[1]
 
-            # Ходы и разметка
-            moves: List[chess.Move] = result[0]
-            marks: Tuple[int] = result[1]
+                    # Рейтинг игроков
+                    white_elo = None
+                    black_elo = None
+                    if 'WhiteElo' in game.headers:
+                        white_elo = int(game.headers['WhiteElo'])
+                    if 'BlackElo' in game.headers:
+                        black_elo = int(game.headers['BlackElo'])
 
-            # Рейтинг игроков
-            white_elo = None
-            black_elo = None
-            if 'WhiteElo' in game.headers:
-                white_elo = int(game.headers['WhiteElo'])
-            if 'BlackElo' in game.headers:
-                black_elo = int(game.headers['BlackElo'])
+                    marked_games.append({
+                            'id': game_id,
+                            'white_elo': white_elo,
+                            'black_elo': black_elo,
+                            'moves': [move.uci() for move in moves],
+                            'marks': marks
+                        })
 
             # Пишем в файл
             with open(output_file, 'w') as file:
-                json.dump({
-                    'id': game_id,
-                    'white_elo': white_elo,
-                    'black_elo': black_elo,
-                    'moves': [move.uci() for move in moves],
-                    'marks': marks
-                }, file)
+                json.dump(marked_games, file)
 
-    def cook_interesting(self, game: chess.pgn.Game, tier: int) -> Union[List[chess.Move], None]:
+    def cook_interesting(self, game: chess.pgn.Game, tier: int) -> Union[Tuple[List[chess.Move], Tuple[int, int]], None]:
         moves = []
         previous_score = chess.engine.Cp(20)
         for node in game.mainline():
@@ -250,6 +260,8 @@ def main():
     )
     parser.add_argument('--input', '-i', help='input pgn file', required=True)
     parser.add_argument('--output', '-o', help='output json-file with marked game', required=True)
+    parser.add_argument('--skip', help='how many games would skipped from the beginning of the file', default=0)
+    parser.add_argument('--quantity', help='how many games would annotated', default=1)
     parser.add_argument('--stockfish', '-s', help='(engine settings) path to stockfish executable file', required=True)
     # parser.add_argument('--depth', '-d', help='(engine settings) depth of analysis', default=16)
     parser.add_argument('--threads', '-t', help='(engine settings) threads to stockfish', default=1)
@@ -261,7 +273,7 @@ def main():
     with chess.engine.SimpleEngine.popen_uci(args.stockfish) as engine:
         engine.configure({"Threads": args.threads})
         generator = Generator(engine)
-        generator.generate_interesting(args.input, args.output)
+        generator.generate_interesting(args.input, args.output, skip=args.skip, quantity=args.quantity)
 
 if __name__ == '__main__':
     main()

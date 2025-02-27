@@ -84,7 +84,7 @@ class Annotator:
             # Обрабатываем игры
             with open(output_pgn, 'a') as output_file:
                 for i in range(quantity):
-                    print(f'Обработка... {i + 1}/{quantity}', end=' ')
+                    print(f'Обработано {i}/{quantity}, обрабатываеся {i + 1}...', end='\r' if i < quantity - 1 else '\n')
 
                     # Аннотируем
                     game = chess.pgn.read_game(pgn)
@@ -95,7 +95,7 @@ class Annotator:
                     # Пишем в файл
                     exporter = chess.pgn.FileExporter(output_file, headers=True, variations=True, comments=True)
                     game.accept(exporter)
-                    print(f'Обработано {i + 1}/{quantity}', end='\r' if i < skip - 1 else '\n')
+                    
 
 
 def main():
