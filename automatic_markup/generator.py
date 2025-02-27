@@ -271,15 +271,21 @@ def main():
     parser.add_argument('--stockfish', '-s', help='(engine settings) path to stockfish executable file', required=True)
     # parser.add_argument('--depth', '-d', help='(engine settings) depth of analysis', default=16)
     parser.add_argument('--threads', '-t', help='(engine settings) threads to stockfish', default=1)
+    parser.add_argument("--verbose", "-v", help="increase verbosity", action="count")
 
     # Парсим их
     args = parser.parse_args()
+
+    if args.verbose == 2:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     # Генерируем партию с интересным моментом
     with chess.engine.SimpleEngine.popen_uci(args.stockfish) as engine:
         engine.configure({"Threads": args.threads})
         generator = Generator(engine)
-        generator.generate_interesting(args.input, args.output, skip=args.skip, quantity=args.quantity)
+        generator.generate_interesting(args.input, args.output, skip=int(args.skip), quantity=int(args.quantity))
 
 if __name__ == '__main__':
     main()
