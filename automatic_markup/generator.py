@@ -9,7 +9,7 @@ import copy
 import chess
 import chess.engine
 import chess.pgn
-import json
+import csv
 import random
 import logging
 from typing import Optional, List, Union, Tuple
@@ -132,39 +132,50 @@ class Generator:
                 game = chess.pgn.read_game(pgn)
             logger.info(f'Пропущено {skip}')
             
-            # Обрабатываем партии
-            marked_games = []
-            for i in range(quantity):
-                logger.info(f'Обработано {i}/{quantity}, обрабатывается {i + 1}...')
-                game = chess.pgn.read_game(pgn)
-                result = self.cook_interesting(game, get_tier(game))
-
-                if result is not None:
-                    game_id = game.headers['GameId'] if 'GameId' in game.headers else f'unknown{random.randint(1, 10**9)}'
-
-                    # Ходы и разметка
-                    moves: List[chess.Move] = result[0]
-                    marks: Tuple[int, int] = result[1]
-
-                    # Рейтинг игроков
-                    white_elo = None
-                    black_elo = None
-                    if 'WhiteElo' in game.headers:
-                        white_elo = int(game.headers['WhiteElo'])
-                    if 'BlackElo' in game.headers:
-                        black_elo = int(game.headers['BlackElo'])
-
-                    marked_games.append({
+            # Определяем заголовки для CSV-файла
+            fieldnames = ['id', 'white_elo', 'black_elo', 'moves', 'marks']
+            
+            # Открываем выходной CSV-файл для записи
+            with open(output_file, 'a', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                
+                # Записываем заголовки только если файл пустой
+                if csvfile.tell() == 0:
+                    writer.writeheader()
+                
+                # Обрабатываем партии
+                for i in range(quantity):
+                    logger.info(f'Обработано {i}/{quantity}, обрабатывается {i + 1}...')
+                    game = chess.pgn.read_game(pgn)
+                    if game is None:
+                        logger.warning("Достигнут конец файла до обработки всех игр.")
+                        break
+                    
+                    result = self.cook_interesting(game, get_tier(game))
+                    if result is not None:
+                        game_id = game.headers['GameId'] if 'GameId' in game.headers else f'unknown{random.randint(1, 10**9)}'
+                        # Ходы и разметка
+                        moves: List[chess.Move] = result[0]
+                        marks: Tuple[int, int] = result[1]
+                        # Рейтинг игроков
+                        white_elo = None
+                        black_elo = None
+                        if 'WhiteElo' in game.headers:
+                            white_elo = int(game.headers['WhiteElo'])
+                        if 'BlackElo' in game.headers:
+                            black_elo = int(game.headers['BlackElo'])
+                        
+                        # Формируем строку для записи в CSV
+                        marked_game = {
                             'id': game_id,
                             'white_elo': white_elo,
                             'black_elo': black_elo,
-                            'moves': [move.uci() for move in moves],
-                            'marks': marks
-                        })
-
-            # Пишем в файл
-            with open(output_file, 'a') as file:
-                json.dump(marked_games, file)
+                            'moves': " ".join([move.uci() for move in moves]),  # Ходы как строка через пробел
+                            'marks': f"{marks[0]},{marks[1]}"  # Разметка как строка через запятую
+                        }
+                        
+                        # Записываем строку в CSV
+                        writer.writerow(marked_game)
 
     def cook_interesting(self, game: chess.pgn.Game, tier: int) -> Union[Tuple[List[chess.Move], Tuple[int, int]], None]:
         moves = []
@@ -274,27 +285,33 @@ def main():
         description='takes a pgn file, find and add interesting moment to it'
     )
     parser.add_argument('--input', '-i', help='input pgn file', required=True)
-    parser.add_argument('--output', '-o', help='output json-file with marked game', required=True)
+    parser.add_argument('--output', '-o', help='output csv-file with marked game', required=True)
     parser.add_argument('--skip', help='how many games would skipped from the beginning of the file', default=0)
     parser.add_argument('--quantity', help='how many games would annotated', default=1)
     parser.add_argument('--stockfish', '-s', help='(engine settings) path to stockfish executable file', required=True)
-    # parser.add_argument('--depth', '-d', help='(engine settings) depth of analysis', default=16)
     parser.add_argument('--threads', '-t', help='(engine settings) threads to stockfish', default=1)
     parser.add_argument("--verbose", "-v", help="increase verbosity", action="count")
-
-    # Парсим их
+    
+    # Парсим аргументы
     args = parser.parse_args()
-
+    
+    # Настройка уровня логирования
     if args.verbose == 2:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
-
+    
     # Генерируем партию с интересным моментом
     with chess.engine.SimpleEngine.popen_uci(args.stockfish) as engine:
-        engine.configure({"Threads": args.threads})
+        engine.configure({"Threads": int(args.threads)})
         generator = Generator(engine)
-        generator.generate_interesting(args.input, args.output, skip=int(args.skip), quantity=int(args.quantity))
+        generator.generate_interesting(
+            input_file=args.input,
+            output_file=args.output,
+            skip=int(args.skip),
+            quantity=int(args.quantity)
+        )
+
 
 if __name__ == '__main__':
     main()

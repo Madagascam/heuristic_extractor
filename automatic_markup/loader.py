@@ -2,14 +2,12 @@
 Модуль для обработки уже готовых пазлов с
 https://database.lichess.org/#puzzles.
 """
-
 import argparse
 import chess
 import chess.pgn
 import csv
 import requests
 import random
-import json
 from io import StringIO
 from typing import List, Union
 
@@ -83,7 +81,6 @@ class Loader:
         
         moves_before = self.find_position(game, row['FEN'])
         moves_after = [chess.Move.from_uci(str_move) for str_move in row['Moves'].split()]
-
         game_id = game.headers['GameId'] if 'GameId' in game.headers else f'unknown{random.randint(1, 10**9)}'
 
         # Рейтинг игроков
@@ -93,31 +90,30 @@ class Loader:
             white_elo = int(game.headers['WhiteElo'])
         if 'BlackElo' in game.headers:
             black_elo = int(game.headers['BlackElo'])
-
         marked_game = {
             'id': game_id,
             'white_elo': white_elo,
             'black_elo': black_elo,
-            'moves': [move.uci() for move in moves_before + moves_after],
-            'marks': [len(moves_before), len(moves_before) + len(moves_after)]
+            'moves': " ".join([move.uci() for move in moves_before + moves_after]),
+            'marks': f"{len(moves_before)},{len(moves_before) + len(moves_after)}"
         }
-
         return marked_game
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         prog='loader.py',
-        description='takes csv file with lichess-puzzles and creates labeled data in json'
+        description='takes csv file with lichess-puzzles and creates labeled data in csv'
     )
     parser.add_argument('--input', '-i', help='input csv file', required=True)
-    parser.add_argument('--output', '-o', help='output json-file with labeled games', required=True)
+    parser.add_argument('--output', '-o', help='output csv-file with labeled games', required=True)
     parser.add_argument('--skip', help='how many puzzles would skipped from the beginning of the file', default=0)
     parser.add_argument('--quantity', help='how many puzzles would processed', default=1)
-
     args = parser.parse_args()
 
-    marked_games = []
+    # Заголовки для CSV-файла
+    fieldnames = ['id', 'white_elo', 'black_elo', 'moves', 'marks']
+
     with Loader(args.input) as loader:
         # Скипаем
         cnt = int(args.skip)
@@ -129,15 +125,17 @@ if __name__ == '__main__':
         
         # Обрабатываем
         cnt = int(args.quantity)
-        if cnt > 0:
-            for row in loader.reader:
-                marked_game = loader.make_marked(row)
-                if marked_game:
-                    marked_games.append(marked_game)
-                    cnt -= 1
-                if cnt == 0:
-                    break
-
-    
-    with open(args.output, 'a') as file:
-        json.dump(marked_games, file)
+        with open(args.output, 'a', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            # Записываем заголовки только если файл пустой
+            if csvfile.tell() == 0:
+                writer.writeheader()
+            
+            if cnt > 0:
+                for row in loader.reader:
+                    marked_game = loader.make_marked(row)
+                    if marked_game:
+                        writer.writerow(marked_game)
+                        cnt -= 1
+                    if cnt == 0:
+                        break
