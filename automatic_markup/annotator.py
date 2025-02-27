@@ -84,7 +84,7 @@ class Annotator:
             # Обрабатываем игры
             with open(output_pgn, 'a') as output_file:
                 for i in range(quantity):
-                    print(f'Обработано {i}/{quantity}, обрабатываеся {i + 1}...', end='\r' if i < quantity - 1 else '\n')
+                    print(f'Обработано {i}/{quantity}, обрабатываеся {i + 1}...', end='\r' if i < quantity - 1 else '\n', flush=True)
 
                     # Аннотируем
                     game = chess.pgn.read_game(pgn)
