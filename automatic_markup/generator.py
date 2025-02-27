@@ -157,7 +157,7 @@ class Generator:
                         })
 
             # Пишем в файл
-            with open(output_file, 'w') as file:
+            with open(output_file, 'a') as file:
                 json.dump(marked_games, file)
 
     def cook_interesting(self, game: chess.pgn.Game, tier: int) -> Union[Tuple[List[chess.Move], Tuple[int, int]], None]:
