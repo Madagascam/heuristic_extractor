@@ -4,6 +4,7 @@ import chess
 import chess.engine
 import chess.pgn
 import json
+import random
 from typing import Optional, List, Union, Tuple
 from util import *
 
@@ -128,7 +129,7 @@ class Generator:
                 result = self.cook_interesting(game, get_tier(game))
 
                 if result is not None:
-                    game_id = game.headers['GameId']
+                    game_id = game.headers['GameId'] if 'GameId' in game.headers else f'unknown{random.randint(1, 10**9)}'
 
                     # Ходы и разметка
                     moves: List[chess.Move] = result[0]
