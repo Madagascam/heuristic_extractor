@@ -5,11 +5,16 @@ import chess.engine
 import chess.pgn
 import json
 import random
+import logging
 from typing import Optional, List, Union, Tuple
 from util import *
 
 mate_soon = chess.engine.Mate(15)
-
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 def material_count(board: chess.Board, side: chess.Color) -> int:
     values = { chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9 }
@@ -37,7 +42,7 @@ class Generator:
             return True
         if pair.second.score == chess.engine.Mate(1):
             # if there's more than one mate in one, gotta look if the best non-mating move is bad enough
-            print('Looking for best non-mating move...')
+            logger.debug('Looking for best non-mating move...')
             mates = count_mates(copy.deepcopy(pair.node.board()))
             info = self.engine.analyse(pair.node.board(), multipv = mates + 1, limit = pair_limit)
             scores =  [pv["score"].pov(pair.winner) for pv in info]
@@ -58,7 +63,7 @@ class Generator:
     def get_next_pair(self, node: chess.pgn.ChildNode, winner: chess.Color) -> Optional[NextMovePair]:
         pair = get_next_move_pair(self.engine, node, winner, pair_limit)
         if node.board().turn == winner and not self.is_valid_attack(pair):
-            print("No valid attack {}".format(pair))
+            logger.debug("No valid attack {}".format(pair))
             return None
         return pair
 
@@ -70,14 +75,14 @@ class Generator:
         board = node.board()
 
         if board.is_repetition(2):
-            print("Found repetition, canceling")
+            logger.debug("Found repetition, canceling")
             return None
 
         pair = self.get_next_pair(node, winner)
         if not pair:
             return []
         if pair.best.score < chess.engine.Cp(200):
-            print("Not winning enough, aborting")
+            logger.debug("Not winning enough, aborting")
             return None
 
         follow_up = self.cook_advantage(node.add_main_variation(pair.best.move), winner)
@@ -98,7 +103,7 @@ class Generator:
             if not pair:
                 return None
             if pair.best.score < mate_soon:
-                print("Best move is not a mate, we're probably not searching deep enough")
+                logger.debug("Best move is not a mate, we're probably not searching deep enough")
                 return None
             move = pair.best.move
         else:
@@ -119,12 +124,12 @@ class Generator:
             # Пропускаем партии
             for i in range(skip):
                 game = chess.pgn.read_game(pgn)
-                print(f'Пропущено {i + 1}/{skip}', end='\r' if i < skip - 1 else '\n')
+            logger.info(f'Пропущено {skip}')
             
             # Обрабатываем партии
             marked_games = []
             for i in range(quantity):
-                print(f'Обработано {i}/{quantity}, обрабатывается {i + 1}...', end='\r' if i < quantity - 1 else '\n', flush=True)
+                logger.info(f'Обработано {i}/{quantity}, обрабатывается {i + 1}...')
                 game = chess.pgn.read_game(pgn)
                 result = self.cook_interesting(game, get_tier(game))
 
@@ -198,26 +203,26 @@ class Generator:
 
         # Если позиция слишком лёгкая (большое преимущество или мат очень скоро)
         if previous_score > chess.engine.Cp(300) and score < mate_soon:
-            print(f"Позиция {'белых' if winner == chess.WHITE else 'черных'}#{node.ply()} "
+            logger.debug(f"Позиция {'белых' if winner == chess.WHITE else 'черных'}#{node.ply()} "
                   f"слишком выигрышная: previous_score={previous_score}, score={score}")
             return None
 
         # Если сторона имеет большое материальное преимущество
         eps = 5 # Надо подбирать, я наобум поставил
         if abs(material_diff(board, winner)) > eps:
-            print(f"{'Белые' if winner == chess.WHITE else 'Черные'}#{node.ply()} имеют "
+            logger.debug(f"{'Белые' if winner == chess.WHITE else 'Черные'}#{node.ply()} имеют "
                   f"большое материальное преимущество: white={material_count(board, chess.WHITE)}, "
                   f"black={material_count(board, chess.BLACK)}")
             return None
 
         # Скип, если мат в один ход
         if score >= chess.engine.Mate(1) and tier > 2:
-            print(f"{node.ply()} Мат в один ход: tier={tier}, score={score}")
+            logger.debug(f"{node.ply()} Мат в один ход: tier={tier}, score={score}")
             return None
         
         # Если намечается мат, пробуем его найти
         if score >= mate_soon:
-            print(f"{node.ply()} Ищем мат...")
+            logger.debug(f"{node.ply()} Ищем мат...")
 
             # Ищем решение
             mate_solution = self.cook_mate(copy.deepcopy(node), winner)
@@ -231,18 +236,18 @@ class Generator:
         # Наконец, пробуем выиграть преимущество
         if score >= chess.engine.Cp(200) and win_chances(score) > win_chances(previous_score) + 0.6:
             if score < chess.engine.Cp(400) and material_diff(board, winner) > -1:
-                print("Not clearly winning and not from being down in material, aborting")
+                logger.debug("Not clearly winning and not from being down in material, aborting")
                 return score
-            print('Пробуем получить преимущество...')
+            logger.debug('Пробуем получить преимущество...')
             adv_solution = self.cook_advantage(copy.deepcopy(node), winner)
-            print(adv_solution)
+            logger.debug(adv_solution)
             # Если преимущество получить невозможно
             if adv_solution is None or len(adv_solution) == 0:
                 return None
             
             while len(adv_solution) % 2 == 0 or not adv_solution[-1].second:
                 if not adv_solution[-1].second:
-                    print("Remove final only-move")
+                    logger.debug("Remove final only-move")
                 adv_solution = adv_solution[:-1]
             
             # if tier > 2 and len(adv_solution) <= 3:
