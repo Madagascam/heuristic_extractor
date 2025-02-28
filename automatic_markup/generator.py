@@ -154,16 +154,25 @@ class Generator:
                     result = self.cook_interesting(game, get_tier(game))
                     if result is not None:
                         game_id = game.headers['GameId'] if 'GameId' in game.headers else f'unknown{random.randint(1, 10**9)}'
+
                         # Ходы и разметка
                         moves: List[chess.Move] = result[0]
                         marks: Tuple[int, int] = result[1]
+
                         # Рейтинг игроков
                         white_elo = None
                         black_elo = None
                         if 'WhiteElo' in game.headers:
-                            white_elo = int(game.headers['WhiteElo'])
+                            try:
+                                white_elo = int(game.headers['WhiteElo'])
+                            except ValueError:
+                                pass
+                        
                         if 'BlackElo' in game.headers:
-                            black_elo = int(game.headers['BlackElo'])
+                            try:
+                                black_elo = int(game.headers['BlackElo'])
+                            except ValueError:
+                                pass
                         
                         # Формируем строку для записи в CSV
                         marked_game = {
