@@ -84,12 +84,20 @@ class Loader:
         game_id = game.headers['GameId'] if 'GameId' in game.headers else f'unknown{random.randint(1, 10**9)}'
 
         # Рейтинг игроков
-        white_elo = 1500
-        black_elo = 1500
+        white_elo = None
+        black_elo = None
         if 'WhiteElo' in game.headers:
-            white_elo = int(game.headers['WhiteElo'])
+            try:
+                white_elo = int(game.headers['WhiteElo'])
+            except ValueError:
+                pass
+        
         if 'BlackElo' in game.headers:
-            black_elo = int(game.headers['BlackElo'])
+            try:
+                black_elo = int(game.headers['BlackElo'])
+            except ValueError:
+                pass
+
         marked_game = {
             'id': game_id,
             'white_elo': white_elo,
