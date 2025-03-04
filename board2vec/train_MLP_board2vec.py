@@ -111,18 +111,33 @@ class TargetContextBoardsLoader:
         # Инициализируем пул досок в первый раз
         self.update_board_pool()
 
+    def check_game(self, game):
+        flag = True
+        for move in game:
+            try:
+                chess.Move.from_uci(move)
+            except chess.InvalidMoveError:
+                flag = False
+        return flag
+
     def update_board_pool(self):
         """Обновляет пул досок, выбирая случайное подмножество партий."""
         self.all_boards = []
-        subset_indices = random.sample(range(len(self.games)), min(self.SUBSET_SIZE, len(self.games)))
-        for idx in subset_indices:
+        cnt = self.SUBSET_SIZE
+        while cnt > 0:
+            idx = random.randint(0, len(self.games) - 1)
+            if not self.check_game(self.games[idx]):
+                continue
             board = chess.Board()
             for move in self.games[idx]:
                 board.push(chess.Move.from_uci(move))
                 self.all_boards.append(encode_board(board))
+            cnt -= 1
 
     def set_game(self):
         cur_game = random.randint(0, len(self.games) - 1)
+        while not self.check_game(self.games[cur_game]):
+            cur_game = random.randint(0, len(self.games) - 1)
         self.games_left -= 1
 
         self.boards = []
@@ -179,6 +194,8 @@ class TargetContextBoardsLoader:
 input_dim = 774
 output_dim = 64
 model = Board2Vec(input_dim, output_dim)
+print('loading weights...')
+model.load_state_dict(torch.load("board2vec_MLP_weights.pth", weights_only=True))
 
 # Даталоадер
 dataloader = TargetContextBoardsLoader(games_series, window_size=8, game_count=50, pair_cnt=50, subset_size=1000)
@@ -210,6 +227,6 @@ for epoch in range(num_epochs):
     print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {total_loss}, lr: {scheduler.get_last_lr()}")
     if (epoch + 1) % 10 == 0:
         # Сохраняем веса модели
-        print(f'Веса модели сохранены в файл "board2vec_weights.pth"')
-        torch.save(model.state_dict(), "board2vec_weights.pth")
+        print(f'Веса модели сохранены в файл "board2vec_MLP_weights.pth"')
+        torch.save(model.state_dict(), "board2vec_MLP_weights.pth")
 
