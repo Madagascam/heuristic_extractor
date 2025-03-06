@@ -122,3 +122,62 @@ class SparseEncoder(BoardEncoder):
 
     def make_batch(self, encoded_boards):
         return torch.tensor(np.array(encoded_boards))
+    
+
+class MatrixEncoder:
+    def encode(
+            self,
+            board: chess.Board,
+            output_type: Literal['torch', 'numpy', 'list']
+        ) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[np.ndarray, np.ndarray], Tuple[list, list]]:
+        
+        # 1. Кодируем состояние доски (12 каналов)
+        board_state = np.zeros((12, 8, 8), dtype=np.float32)  # 12 каналов: 6 фигур × 2 цвета
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece is not None:
+                # Определяем канал:
+                # 0-5: белые пешка, конь, слон, ладья, ферзь, король
+                # 6-11: черные пешка, конь, слон, ладья, ферзь, король
+                channel = piece.piece_type - 1
+                if piece.color == chess.BLACK:
+                    channel += 6
+                row = square // 8
+                col = square % 8
+                board_state[channel, row, col] = 1.0
+
+        # 2. Дополнительные признаки (аналогично предыдущей версии)
+        castling_rights = np.array([
+            board.has_kingside_castling_rights(chess.WHITE),
+            board.has_queenside_castling_rights(chess.WHITE),
+            board.has_kingside_castling_rights(chess.BLACK),
+            board.has_queenside_castling_rights(chess.BLACK)
+        ], dtype=np.float32)
+
+        en_passant = np.array([
+            board.ep_square if board.ep_square is not None else -1
+        ], dtype=np.float32)
+
+        current_player = np.array([float(board.turn)], dtype=np.float32)  # 1.0 для белых, 0.0 для черных
+
+        adv_vector = np.concatenate([castling_rights, en_passant, current_player])
+
+        # Преобразуем в нужный формат
+        if output_type == 'torch':
+            return (
+                torch.tensor(board_state, dtype=torch.float32),
+                torch.tensor(adv_vector, dtype=torch.float32)
+            )
+        elif output_type == 'numpy':
+            return board_state, adv_vector
+        elif output_type == 'list':
+            return board_state.tolist(), adv_vector.tolist()
+        else:
+            raise ValueError(f"Unsupported output_type: {output_type}")
+
+    def make_batch(self, encoded_boards: List[Tuple]) -> Tuple[torch.Tensor, torch.Tensor]:
+        boards, advs = zip(*encoded_boards)
+        return (
+            torch.stack([torch.tensor(b) for b in boards]),
+            torch.stack([torch.tensor(a) for a in advs])
+        )
