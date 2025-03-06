@@ -4,12 +4,7 @@ import pandas as pd
 import chess
 import numpy as np
 from sklearn.manifold import TSNE
-
-# Загрузка предобученной модели Board2Vec
-@st.cache_resource
-def load_board2vec_model():
-    from inference_MLP_board2vec import Board2VecInference
-    return Board2VecInference(weights_path='./board2vec/board2vec_MLP_weights.pth')
+from ..experiment_01.inference import board2vec  
 
 
 @st.cache_resource
@@ -36,12 +31,9 @@ def reduce_dimensions(embeddings):
 def main():
     st.title("Визуализация Board2Vec эмбеддингов")
 
-    # Загрузка модели
-    model = load_board2vec_model()
-
     # Выбор слов для визуализации
-    boards = sample_boards('./labeled.csv')
-    embeddings = np.array([model(board).detach().numpy() for board in boards])
+    boards = sample_boards('C:/Users/matvey/workspace/heuristic_extractor/labeled.csv')
+    embeddings = np.array([board2vec(board) for board in boards])
 
     # Снижение размерности
     reduced_embeddings = reduce_dimensions(embeddings)

@@ -12,7 +12,8 @@ class TargetContextBoardsLoader:
             window_size: int,
             game_count: int,
             pair_cnt: int,
-            subset_size: int
+            subset_size: int,
+            negatives_cnt: int
         ):
         self.games = games
         self.board_encoder = board_encoder
@@ -20,10 +21,11 @@ class TargetContextBoardsLoader:
         self.PAIR_CNT = pair_cnt
         self.GAME_COUNT = game_count
         self.SUBSET_SIZE = subset_size  # Размер подмножества партий для пула
+        self.NEGATIVES_CNT = negatives_cnt
 
         self.games_left = self.GAME_COUNT
-        self.all_boards = []  # Пул досок из подмножества
-        self.boards = []  # Доски текущей игры
+        self.pool_encoded_boards = []  # Пул досок из подмножества
+        self.encoded_boards = []  # Доски текущей игры
 
         # Инициализируем пул досок в первый раз
         self.update_board_pool()
@@ -39,7 +41,7 @@ class TargetContextBoardsLoader:
 
     def update_board_pool(self):
         """Обновляет пул досок, выбирая случайное подмножество партий."""
-        self.all_boards = []
+        self.pool_encoded_boards = []
         cnt = self.SUBSET_SIZE
         while cnt > 0:
             idx = random.randint(0, len(self.games) - 1)
@@ -48,7 +50,7 @@ class TargetContextBoardsLoader:
             board = chess.Board()
             for move in self.games[idx]:
                 board.push(chess.Move.from_uci(move))
-                self.all_boards.append(self.board_encoder.encode(board, output_type='numpy'))
+                self.pool_encoded_boards.append(self.board_encoder.encode(board, output_type='numpy'))
             cnt -= 1
 
     def set_game(self):
@@ -57,42 +59,38 @@ class TargetContextBoardsLoader:
             cur_game = random.randint(0, len(self.games) - 1)
         self.games_left -= 1
 
-        self.boards = []
+        self.encoded_boards = []
         prev_board = chess.Board()
         game = self.games[cur_game]
         for move in game:
             prev_board.push(chess.Move.from_uci(move))
             encoded = self.board_encoder.encode(prev_board, output_type='numpy')
-            self.boards.append(encoded)
-        self.boards = np.array(self.boards)
+            self.encoded_boards.append(encoded)
     
     def gen_pairs(self):
         target = []
         context = []
         negatives = []
-        k = 5  # Количество негативных примеров на пару
 
         for _ in range(self.PAIR_CNT):
-            i = random.randint(0, len(self.boards) - 1)
-            target.append(self.boards[i])
+            i = random.randint(0, len(self.encoded_boards) - 1)
+            target.append(self.encoded_boards[i])
 
             # Генерация контекста
             start = max(0, i - self.WINDOW_SIZE)
-            end = min(len(self.boards), i + self.WINDOW_SIZE + 1)
+            end = min(len(self.encoded_boards), i + self.WINDOW_SIZE + 1)
             j = random.choice(list(range(start, i)) + list(range(i + 1, end)))
-            context.append(self.boards[j])
+            context.append(self.encoded_boards[j])
 
-            # Генерация негативных примеров из пула self.all_boards
-            neg_samples = random.sample(self.all_boards, k)
-            negatives.append(neg_samples)
+            # Генерация негативных примеров из пула self.pool_encoded_boards
+            neg_samples = random.sample(self.pool_encoded_boards, self.NEGATIVES_CNT)
+            negatives.extend(neg_samples)
 
-        target = np.array(target)
-        context = np.array(context)
-        negatives = np.array(negatives)
-
-        return (torch.tensor(target),
-                torch.tensor(context),
-                torch.tensor(negatives))
+        return (
+            self.board_encoder.make_batch(target),
+            self.board_encoder.make_batch(context),
+            self.board_encoder.make_batch(negatives)
+        )
 
     def __iter__(self):
         return self

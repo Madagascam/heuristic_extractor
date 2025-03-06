@@ -1,11 +1,5 @@
 """Архитектура модели"""
 
-# Размер входного вектора - первичного представления доски
-input_dim = 774
-
-# Размер первого слоя нейросети, который сжимает разреженный вектор в более плотный и информативный
-sparse_hidden = 256
-
 # Размер скрытого слоя
 hidden_dim = 128
 
@@ -47,4 +41,4 @@ NEGATIVES_COUNT = 5
 data_path = 'C:/Users/matvey/workspace/heuristic_extractor/labeled.csv'
 
 # Директория для сохранения весов
-weight_dir = 'C:/Users/matvey/workspace/heuristic_extractor/board2vec/experiments/experiment_01/weights/'
+weight_dir = 'C:/Users/matvey/workspace/heuristic_extractor/board2vec/experiments/experiment_02/weights/'
