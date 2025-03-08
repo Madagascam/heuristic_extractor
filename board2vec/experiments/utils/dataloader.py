@@ -152,6 +152,3 @@ class TargetStockfishBoardLoader(TargetContextBoardsLoader):
             self.board_encoder.make_batch(context),
             self.board_encoder.make_batch(negatives)
         )
-
-    def __del__(self):
-        self.engine.close()
