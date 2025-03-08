@@ -4,7 +4,6 @@ import pandas as pd
 import chess
 import numpy as np
 from sklearn.manifold import TSNE
-from ..experiment_01.inference import board2vec  
 
 
 @st.cache_resource
@@ -28,7 +27,7 @@ def reduce_dimensions(embeddings):
 
 
 # Основная функция
-def main():
+def main(board2vec):
     st.title("Визуализация Board2Vec эмбеддингов")
 
     # Выбор слов для визуализации
@@ -60,6 +59,3 @@ def main():
 
     # Отображение графика в Streamlit
     st.plotly_chart(fig, use_container_width=True)
-
-if __name__ == "__main__":
-    main()

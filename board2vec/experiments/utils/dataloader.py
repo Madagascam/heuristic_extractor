@@ -1,5 +1,7 @@
 import chess
+import chess.engine
 import random
+import chess.engine
 import numpy as np
 import torch
 from typing import List
@@ -59,14 +61,16 @@ class TargetContextBoardsLoader:
             cur_game = random.randint(0, len(self.games) - 1)
         self.games_left -= 1
 
+        self.boards = []
         self.encoded_boards = []
         prev_board = chess.Board()
         game = self.games[cur_game]
         for move in game:
             prev_board.push(chess.Move.from_uci(move))
             encoded = self.board_encoder.encode(prev_board, output_type='numpy')
+            self.boards.append(prev_board.copy())
             self.encoded_boards.append(encoded)
-    
+
     def gen_pairs(self):
         target = []
         context = []
@@ -99,7 +103,55 @@ class TargetContextBoardsLoader:
         if self.games_left <= 0:
             self.games_left = self.GAME_COUNT
             raise StopIteration
-        
+
         self.set_game()
-        
+
         return self.gen_pairs()
+
+
+class TargetStockfishBoardLoader(TargetContextBoardsLoader):
+    def __init__(self, path_stockfish, *args, **kwargs):
+        super(TargetStockfishBoardLoader, self).__init__(*args, **kwargs)
+        self.engine = chess.engine.SimpleEngine.popen_uci(path_stockfish)
+
+    def gen_pairs(self):
+        target = []
+        context = []
+        negatives = []
+
+        for _ in range(self.PAIR_CNT - 5):
+            # Берём случайную доску
+            i = random.randint(0, len(self.encoded_boards) - 1)
+            target.append(self.encoded_boards[i])
+
+            # Генерация контекста
+            start = max(0, i - self.WINDOW_SIZE)
+            end = min(len(self.encoded_boards), i + self.WINDOW_SIZE + 1)
+            j = random.choice(list(range(start, i)) + list(range(i + 1, end)))
+            context.append(self.encoded_boards[j])
+
+            # Генерация негативных примеров из пула self.pool_encoded_boards
+            neg_samples = random.sample(self.pool_encoded_boards, self.NEGATIVES_CNT)
+            negatives.extend(neg_samples)
+
+        # Добавляем дополнительный контекст, связанный со стокфишем
+        i = random.randint(0, len(self.encoded_boards) - 1)
+        info = self.engine.analyse(self.boards[i], limit=chess.engine.Limit(depth=16))
+        if 'pv' in info:
+            moves = info['pv']
+            prev_board = self.boards[i].copy()
+            for move in moves:
+                prev_board.push(move)
+                target.append(self.encoded_boards[i])
+                context.append(self.board_encoder.encode(prev_board, output_type='numpy'))
+                neg_samples = random.sample(self.pool_encoded_boards, self.NEGATIVES_CNT)
+                negatives.extend(neg_samples)
+
+        return (
+            self.board_encoder.make_batch(target),
+            self.board_encoder.make_batch(context),
+            self.board_encoder.make_batch(negatives)
+        )
+
+    def __del__(self):
+        self.engine.close()

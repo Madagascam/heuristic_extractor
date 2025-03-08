@@ -3,7 +3,7 @@ import numpy as np
 import torch.optim as optim
 import pandas as pd
 import os
-from ..utils.dataloader import TargetContextBoardsLoader
+from ..utils.dataloader import TargetStockfishBoardLoader
 from ..utils.board_encoder import MatrixEncoder
 from .config import *
 from .model import Board2Vec
@@ -40,14 +40,15 @@ def run_train():
         model.load_state_dict(state_dict)
 
     # Даталоадер
-    dataloader = TargetContextBoardsLoader(
-        games_series,
+    dataloader = TargetStockfishBoardLoader(
+        path_stockfish=stockfish_path,
+        games=games_series,
         board_encoder=MatrixEncoder(),
         window_size=WINDOW_SIZE,
         game_count=GAME_COUNT,
         pair_cnt=PAIR_CNT,
         subset_size=SUBSET_SIZE,
-        negatives_cnt=NEGATIVES_COUNT
+        negatives_cnt=NEGATIVES_COUNT,
     )
 
     # Оптимизатор
