@@ -1,0 +1,4 @@
+Highlight all interesting segments of moves on PGN of a chess game (each segment no more than 20 half-moves).
+Note: In chess, one full move consists of two half-moves (white and black), with the first half-move indexed as 0.
+Need to output only the following list: [[start number of interesting half-move, end number of interesting half-move], ...].
+PGN:
