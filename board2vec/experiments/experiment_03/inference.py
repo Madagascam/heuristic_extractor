@@ -10,7 +10,7 @@ print(f'device: {device}')
 
 # load_path - путь к весам обученной модели
 model = Board2Vec(hidden_dim, output_dim)
-model.load_state_dict(torch.load(weight_dir + 'CNN_1.pth', weights_only=True, map_location=device))
+model.load_state_dict(torch.load(weight_dir + 'CNN_3.pth', weights_only=True, map_location=device))
 model.eval()
 encoder = MatrixEncoder()
 

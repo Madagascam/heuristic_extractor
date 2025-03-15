@@ -177,10 +177,11 @@ class MatrixEncoder:
 
     def make_batch(self, encoded_boards: List[Tuple]) -> Tuple[torch.Tensor, torch.Tensor]:
         boards, advs = zip(*encoded_boards)
-        if len(boards) > 0 and not isinstance(boards[0], torch.Tensor):
-            boards = torch.tensor(boards)
-        if len(advs) > 0 and not isinstance(advs[0], torch.Tensor):
-            advs = torch.tensor(advs)
+        for i in range(len(boards)):
+            if not isinstance(boards[i], torch.Tensor):
+                boards[i] = torch.tensor(boards[i])
+            if not isinstance(advs[i], torch.Tensor):
+                advs[i] = torch.tensor(advs[i])
         return (
             torch.stack(boards),
             torch.stack(advs)

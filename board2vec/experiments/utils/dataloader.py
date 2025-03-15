@@ -2,8 +2,6 @@ import chess
 import chess.engine
 import random
 import chess.engine
-import numpy as np
-import torch
 from typing import List
 from .board_encoder import BoardEncoder
 

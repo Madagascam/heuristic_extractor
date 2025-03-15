@@ -1,5 +1,6 @@
 import torch
 import chess
+import numpy as np
 from .model import Board2Vec
 from .config import weight_dir
 from ..utils.board_encoder import SparseEncoder
@@ -15,7 +16,7 @@ encoder = SparseEncoder()
 
 def board2vec(boards: List[chess.Board]):
     with torch.no_grad():
-        encoded = torch.tensor([encoder.encode(board, output_type='numpy') for board in boards])
+        encoded = torch.tensor(np.array([encoder.encode(board, output_type='numpy') for board in boards]))
         return model(encoded).detach().numpy()
 
 
