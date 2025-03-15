@@ -13,7 +13,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'device: {device}')
 
 data = pd.read_csv(data_path, header=0)
-games_series = data['moves'].str.split(' ')     
+games_series = data['moves'].str.strip().str.split()
 
 def criterion(target_embed: torch.Tensor, context_embed: torch.Tensor, negatives_embed: torch.Tensor):
     # Положительные примеры: скалярное произведение между target и context

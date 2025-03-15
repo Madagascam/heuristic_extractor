@@ -38,7 +38,7 @@ NEGATIVES_COUNT = 5
 """Пути для сохранения файлов"""
 
 # Путь к размеченным данным (https://disk.yandex.ru/d/z1rfxW7UZmnAhw)
-data_path = 'C:/Users/matvey/workspace/heuristic_extractor/labeled.csv'
+data_path = 'C:/Users/matvey/workspace/heuristic_extractor/games.csv'
 
 # Путь к исполняемому движку stockfish
 stockfish_path = 'C:/Users/matvey/workspace/heuristic_extractor/stockfish.exe'
