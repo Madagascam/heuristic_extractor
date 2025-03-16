@@ -110,9 +110,12 @@ class MaiaEngine:
             chess.IllegalMoveError: Если ход невозможен на текущей доске.
         """
         try:
-            white_elo = int(row['white_elo'])
-            black_elo = int(row['black_elo'])
-            average_elo = (white_elo + black_elo) / 2
+            white_elo = int(row['white_elo']) if row['white_elo'].isdigit() else None
+            black_elo = int(row['black_elo']) if row['black_elo'].isdigit() else None
+            if white_elo is None or black_elo is None:
+                average_elo = 1500
+            else:
+                average_elo = (white_elo + black_elo) / 2
             moves = row['moves'].split()
 
             board = chess.Board()
