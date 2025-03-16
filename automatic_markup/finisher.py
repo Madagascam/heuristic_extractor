@@ -1,226 +1,211 @@
 """
-Модуль обрабатывает размеченные партии, "доигрывая"
-их до конца, если друг игра (последовательность ходов)
-не заканчивается матом.
+Модуль обрабатывает размеченные шахматные партии, доигрывая их до конца с использованием движка Maia,
+если партия не завершилась матом.
 """
 
+import logging
+from pathlib import Path
 import chess
-from dataclasses import dataclass
-import subprocess
-import select
-import json
-import os
-import signal
-import time
+import chess.engine
+import csv
+from typing import Dict, Iterator, Union, Literal
 
-CONFIG = {
-    "PATH_TO_LC0_ENGINE": "lc0/lc0.exe",
-    "PATH_TO_MAIA_WEIGHTS_FOLDER": "maia_weights",
-    "NUMBER_OF_PROCESSES": 5,
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Конфигурация по умолчанию
+DEFAULT_CONFIG = {
+    "PATH_TO_LC0_ENGINE": "C:/Users/matvey/Documents/chess_data/lc0/lc0.exe",
+    "PATH_TO_MAIA_WEIGHTS_FOLDER": "C:/Users/matvey/workspace/heuristic_extractor/automatic_markup/maia_weights",
 }
-
+ENGINE_OPTIONS = {
+    "Threads": 1,
+}
 
 class MaiaEngine:
     """
-    with MaiaEngine() as engine:
-        engine.start_processes()
+    Класс для работы с шахматным движком Maia, основанным на lc0.
+    Используется для доигрывания незавершенных партий.
+
+    Пример использования:
+        with MaiaEngine() as engine:
+            engine.set_output_file('output.csv')
+            for game in engine.upload_games('input.csv'):
+                updated_game = engine.finish_game(game)
+                engine.save(updated_game)
     """
-    index_of_process_to_rating = {1100 + i: i // 200 for i in range(0, 801, 200)}
+    ratings = [1100, 1300, 1500, 1700, 1900]
 
-    def __init__(self):
-        self.lc0_engines = []
-        self._init_lc0_engines()
-
-        self.board = None
-        self.current_lc0_engine_index = 0
-        self.game_info = None
-
-    def _init_lc0_engines(self) -> None:
+    def __init__(self, config: Dict = DEFAULT_CONFIG):
         """
-        Инициализирует процессы lc0 для разных рейтингов. Создаёт и запускает процессы,
-        загружает веса для каждой модели и ожидает подтверждения "uciok" от каждого процесса.
+        Инициализирует движок Maia с указанной конфигурацией.
 
-        Исключения:
-            TimeoutError: Если процесс не отправил "uciok" в течение 5 секунд.
-            Exception: Если возникла ошибка при запуске процессов.
+        Args:
+            config (Dict): Словарь с настройками (пути к lc0 и весам, количество процессов).
         """
-        try:
-            for i in range(CONFIG["NUMBER_OF_PROCESSES"]):
-                command = [CONFIG["PATH_TO_LC0_ENGINE"], f"--weights=maia_weights/maia-{1100 + 200 * i}.pb.gz"]
-                process = subprocess.Popen(command,
-                                           stdin=subprocess.PIPE,
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE,
-                                           text=True)
-                self.lc0_engines.append(process)
+        self.config = config
+        self.engines: Dict[int, chess.engine.SimpleEngine] = {}
+        self._init_engines()
 
-                process.stdin.write("uci\n")
-                process.stdin.flush()
+    def _init_engines(self) -> None:
+        """Инициализирует движки lc0 для каждого рейтинга."""
+        for rating in self.ratings:
+            weights_path = Path(DEFAULT_CONFIG["PATH_TO_MAIA_WEIGHTS_FOLDER"]) / f'maia-{rating}.pb.gz'
+            self.engines[rating] = chess.engine.SimpleEngine.popen_uci(
+                [DEFAULT_CONFIG['PATH_TO_LC0_ENGINE'], f"--weights={weights_path}"]
+            )
+            self.engines[rating].configure(ENGINE_OPTIONS)
 
-                # Чтение и ожидание "uciok"
-                start_time = time.time()
-                timeout = 5  # Время ожидания в секундах
-
-                while True:
-                    # Проверяем, не завершился ли процесс
-                    if process.poll() is not None:
-                        print("Процесс завершён неожиданно.")
-                        raise TimeoutError
-
-                    output = process.stdout.readline().strip()
-                    if output == "uciok":
-                        break
-
-                    # Проверка таймаута
-                    if time.time() - start_time > timeout:
-                        print("Ошибка: не получили 'uciok' за 5 секунд.")
-                        raise TimeoutError
-
-        except Exception as e:
-            self._close_all_processes()
-            raise e
-
-    def upload_game(self, path_to_markup_json) -> None:
+    def upload_games(self, path_to_markup_csv: str, skip: Union[int, Literal['auto']] = 0) -> Iterator[Dict[str, str]]:
         """
-        Загружает партию из указанного JSON-файла, обновляет шахматную доску и выбирает
-        движок lc0 в зависимости от среднего рейтинга игроков.
+        Загружает партии из CSV-файла.
 
-        Параметры:
-            path_to_markup_json (str): Путь к файлу JSON с разметкой партии.
+        Args:
+            path_to_markup_csv (str): Путь к CSV-файлу с разметкой партий.
 
-        Исключения:
-            Exception: Если возникает ошибка при чтении файла или обработке данных.
+        Yields:
+            Dict[str, str]: Словарь с данными одной партии.
+
+        Raises:
+            FileNotFoundError: Если файл не найден.
+            csv.Error: Если файл поврежден или имеет неверный формат.
         """
         try:
-            with open(path_to_markup_json, mode='r', encoding='UTF-8') as file:
-                data = json.load(file)
-
-            self.game_info = data
-            self.board = chess.Board()
-            # Проигрываем все ходы
-            for move in data["moves"]:
-                self.board.push(chess.Move.from_uci(move))
-
-            ratings = list(self.index_of_process_to_rating.keys())
-            average_elo = round((data['white_elo'] + data['black_elo']) / 2)
-            self.current_lc0_engine_index = self.index_of_process_to_rating[
-                min(ratings, key=lambda x: abs(x - average_elo))]
-
+            if skip == 'auto':
+                if not hasattr(self, 'file'):
+                    raise ValueError('Чтобы использовать skip в автоматическом режиме, сначала используйте метод set_output_file')
+                output_path = Path(self.output_path)
+                if output_path.exists():
+                    with open(self.output_path, 'r') as f:
+                        lines = f.readlines()
+                        existing_rows = len(lines) - 1  # Вычитаем заголовок
+                        skip = max(0, existing_rows)
+                else:
+                    skip = 0
+                logging.info(f'Установлено значение skip={skip}')
+            with open(path_to_markup_csv, mode='r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                self._fieldnames = reader.fieldnames
+                for row in reader:
+                    if skip > 0:
+                        skip -= 1
+                        continue
+                    yield row
         except Exception as e:
-            print(e)
+            logging.error(f"Ошибка при чтении CSV-файла {path_to_markup_csv}: {e}")
+            raise
 
-    def _close_all_processes(self) -> None:
+    def finish_game(self, row: Dict[str, str]) -> Dict[str, str]:
         """
-        Безопасно завершает все процессы lc0, отправляя команду "quit" и ожидая их завершения.
+        Завершает партию до конца, если она не закончилась.
 
-        Исключения:
-            Exception: Если процесс не завершился должным образом, может быть принудительно завершён.
+        Args:
+            row (Dict[str, str]): Словарь с данными партии, включая 'white_elo', 'black_elo' и 'moves'.
+
+        Returns:
+            Dict[str, str]: Обновленный словарь с завершенной последовательностью ходов.
+
+        Raises:
+            ValueError: Если рейтинги или ходы имеют неверный формат.
+            chess.IllegalMoveError: Если ход невозможен на текущей доске.
         """
-        for process in self.lc0_engines:
-            if process.poll() is None:  # Процесс ещё выполняется
-                try:
-                    # Сначала отправляем quit в stdin
-                    if process.stdin:
-                        process.stdin.write("quit\n")
-                        process.stdin.flush()
+        try:
+            white_elo = int(row['white_elo'])
+            black_elo = int(row['black_elo'])
+            average_elo = (white_elo + black_elo) / 2
+            moves = row['moves'].split()
 
-                    # Даем время для завершения
-                    process.wait(timeout=1)
+            board = chess.Board()
+            for move in moves:
+                board.push(chess.Move.from_uci(move))
 
-                except Exception:
-                    # Принудительно завершаем процесс, если он не завершился
-                    if os.name == "nt":
-                        process.terminate()  # Windows
-                    else:
-                        os.kill(process.pid, signal.SIGTERM)  # Linux/Mac
+            while not board.is_game_over():
+                best_move = self._get_best_move(board, average_elo)
+                moves.append(best_move)
+                board.push(chess.Move.from_uci(best_move))
 
-                # Гарантия, что процесс точно закрыт
-                process.kill()
-                process.wait()
-        self.lc0_engines = []
+            row['moves'] = ' '.join(moves)
+            return row
+        except Exception as e:
+            logging.error(f"Ошибка при завершении партии: {e}")
+            raise
 
-    def finish_game(self) -> None:
+    def _get_best_move(self, board: chess.Board, rating: float) -> str:
         """
-        Завершающий метод игры. Делает ходы до тех пор, пока игра не закончится.
+        Получает лучший ход для текущей позиции от движка.
 
-        Исключения:
-            ValueError: Если шахматная доска не была инициализирована перед завершением игры.
+        Args:
+            board (chess.Board): Текущая шахматная позиция.
+            rating (float): Средний рейтинг игроков для выбора движка.
+
+        Returns:
+            str: Лучший ход в формате UCI.
+
+        Raises:
+            chess.engine.EngineError: Если движок не отвечает или завершает работу.
         """
-        if self.board is None:
-            self._close_all_processes()
-            raise ValueError
+        closest_rating = min(self.ratings, key=lambda x: abs(x - rating))
+        engine = self.engines[closest_rating]
+        try:
+            result = engine.play(board, chess.engine.Limit(time=0.5, nodes=1))
+            return result.move.uci()
+        except Exception as e:
+            logging.error(f"Ошибка при получении хода для рейтинга {closest_rating}: {e}")
+            raise
 
-        while not self.board.is_game_over():
-            self._make_best_move()
-
-    def _make_best_move(self) -> None:
+    def set_output_file(self, output_path: str) -> None:
         """
-        Делает лучший ход для текущей позиции, используя движок lc0. Ожидает лучший ход
-        от движка и применяет его к доске.
+        Устанавливает файл для записи результатов.
 
-        Исключения:
-            TimeoutError: Если движок не успевает предоставить лучший ход в течение 5 секунд.
+        Args:
+            output_path (str): Путь к выходному CSV-файлу.
         """
-        if self.board.is_game_over():
-            return
+        self.file = open(output_path, mode='a+', encoding='utf-8', newline='')
+        self.output_path = output_path
+        self.writer = None
 
-        fen = self.board.fen()
-        engine = self.lc0_engines[self.current_lc0_engine_index]
+    def save(self, row: Dict[str, str]) -> None:
+        """
+        Сохраняет обновленную партию в выходной файл.
 
-        engine.stdin.write(f"position fen {fen}\n")  # Устанавливаем позицию
-        engine.stdin.write("go nodes 1\n")  # Предсказание следующего хода
-        engine.stdin.flush()  # Принудительная отправка данных
-        timeout = 2
-        best_move = ''
-
-        # Чтение и ожидание "uciok"
-        start_time = time.time()
-        timeout = 5  # Время ожидания в секундах
-
-        while True:
-            line = engine.stdout.readline().strip()
-            if "bestmove" in line:  # Останавливаемся, когда появляется лучший ход
-                best_move = line.split()[1]
-                break
-
-            # Проверка таймаута
-            if time.time() - start_time > timeout:
-                self._close_all_processes()
-                print("TimeOut")
-                raise TimeoutError
-        # Не получили ход
-        if best_move == '':
-            self._close_all_processes()
-            raise TimeoutError
-
-        self.board.push(chess.Move.from_uci(best_move))
-        # Добавляем ход в размеченные данные
-        self.game_info['moves'].append(best_move)
-
-    def output_info(self, path_to_output):
-        with open(path_to_output, mode='w', encoding='UTF-8') as file:
-            json.dump(self.game_info, file, indent=4)
+        Args:
+            row (Dict[str, str]): Словарь с данными партии для сохранения.
+        """
+        if self.writer is None:
+            self.writer = csv.DictWriter(self.file, fieldnames=self._fieldnames)
+            # Проверяем, пуст ли файл
+            self.file.seek(0)
+            first_line = self.file.readline()
+            if not first_line:  # Файл пуст, записываем заголовки
+                self.writer.writeheader()
+            else:
+                # Проверяем совпадение заголовков
+                existing_header = first_line.strip().split(',')
+                if set(existing_header) != set(self._fieldnames):
+                    logging.warning("Структура выходного файла не совпадает с ожидаемой. Заголовки не будут перезаписаны.")
+            # Возвращаем указатель в конец файла
+            self.file.seek(0, 2)
+        self.writer.writerow(row)
 
     def __enter__(self):
-        """Метод для использования в with-блоке. Инициализация объекта."""
+        """Инициализация для использования в with-блоке."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Метод для использования в with-блоке. Завершение работы объекта."""
-        self._close_all_processes()
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Закрытие всех ресурсов при выходе из with-блока."""
+        for engine in self.engines.values():
+            engine.quit()
+        if hasattr(self, 'file'):
+            self.file.close()
 
-    def __del__(self):
-        """Деструктор: вызывается при удалении объекта."""
-        self._close_all_processes()
-
-
-# пример использования
+# Пример использования с параллельной обработкой
 if __name__ == "__main__":
-    with MaiaEngine() as eng:
-        eng.upload_game(f"example_markup1.json")
-        eng.finish_game()
-        eng.output_info("output.json")
+    input_path = 'C:/Users/matvey/workspace/heuristic_extractor/labeled.csv'
+    output_path = 'C:/Users/matvey/workspace/heuristic_extractor/labeled2.csv'
 
-        eng.upload_game(f"example_markup2.json")
-        eng.finish_game()
-        eng.output_info("output.json")
+    with MaiaEngine() as eng:
+        eng.set_output_file(output_path)
+        for i, row in enumerate(eng.upload_games(input_path, skip='auto')):
+            updated_row = eng.finish_game(row)
+            eng.save(updated_row)
+            print(f'Обработано {i + 1:>7}...', end='\r')
