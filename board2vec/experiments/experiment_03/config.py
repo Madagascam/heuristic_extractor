@@ -38,10 +38,10 @@ NEGATIVES_COUNT = 5
 """Пути для сохранения файлов"""
 
 # Путь к размеченным данным (https://disk.yandex.ru/d/z1rfxW7UZmnAhw)
-data_path = 'C:/Users/matvey/workspace/heuristic_extractor/games.csv'
+data_path = 'C:/Users/matvey/Documents/chess_data/games.csv'
 
 # Путь к исполняемому движку stockfish
-stockfish_path = 'C:/Users/matvey/workspace/heuristic_extractor/stockfish.exe'
+stockfish_path = 'C:/Users/matvey/Documents/chess_data/stockfish/stockfish.exe'
 
 # Директория для сохранения весов
 weight_dir = 'C:/Users/matvey/workspace/heuristic_extractor/board2vec/experiments/experiment_03/weights/'

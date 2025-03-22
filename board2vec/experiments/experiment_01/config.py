@@ -44,7 +44,7 @@ NEGATIVES_COUNT = 5
 """Пути для сохранения файлов"""
 
 # Путь к размеченным данным (https://disk.yandex.ru/d/z1rfxW7UZmnAhw)
-data_path = 'C:/Users/matvey/workspace/heuristic_extractor/games.csv'
+data_path = 'C:/Users/matvey/Documents/chess_data/games.csv'
 
 # Директория для сохранения весов
 weight_dir = 'C:/Users/matvey/workspace/heuristic_extractor/board2vec/experiments/experiment_01/weights/'
