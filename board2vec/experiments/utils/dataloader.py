@@ -121,46 +121,55 @@ class TargetContextBoardsLoader:
         return self.gen_pairs()
 
 
-class TargetStockfishBoardLoader(TargetContextBoardsLoader):
-    def __init__(self, path_stockfish, *args, **kwargs):
-        super(TargetStockfishBoardLoader, self).__init__(*args, **kwargs)
-        self.engine = chess.engine.SimpleEngine.popen_uci(path_stockfish)
+"""
+НУЖНО ПЕРЕПИСАТЬ, рабочий вариант кода в коммите 174c3b31694f4dfa8863c41a6e2c781ebbca3af4
+(
+    Ответственный: Матвей
+    Телеграмм: @kend27
+    Почта: matvey.ivchenko@yandex.ru
+)
+"""
+# class TargetStockfishBoardLoader(TargetContextBoardsLoader):
+#     def __init__(self, path_stockfish, *args, **kwargs):
+#         super(TargetStockfishBoardLoader, self).__init__(*args, **kwargs)
+#         self.engine = chess.engine.SimpleEngine.popen_uci(path_stockfish)
 
-    def gen_pairs(self):
-        target = []
-        context = []
-        negatives = []
+#     def gen_pairs(self):
+#         target = []
+#         context = []
+#         negatives = []
 
-        for _ in range(self.PAIR_CNT - 5):
-            # Берём случайную доску
-            i = random.randint(0, len(self.encoded_boards) - 1)
-            target.append(self.encoded_boards[i])
+#         for _ in range(self.PAIR_CNT - 5):
+#             # Берём случайную доску
+#             i = random.randint(0, len(self.encoded_boards) - 1)
+#             target.append(self.encoded_boards[i])
 
-            # Генерация контекста
-            start = max(0, i - self.WINDOW_SIZE)
-            end = min(len(self.encoded_boards), i + self.WINDOW_SIZE + 1)
-            j = random.choice(list(range(start, i)) + list(range(i + 1, end)))
-            context.append(self.encoded_boards[j])
+#             # Генерация контекста
+#             start = max(0, i - self.WINDOW_SIZE)
+#             end = min(len(self.encoded_boards), i + self.WINDOW_SIZE + 1)
+#             j = random.choice(list(range(start, i)) + list(range(i + 1, end)))
+#             context.append(self.encoded_boards[j])
 
-            # Генерация негативных примеров из пула self.pool_encoded_boards
-            neg_samples = random.sample(self.pool_encoded_boards, self.NEGATIVES_CNT)
-            negatives.extend(neg_samples)
+#             # Генерация негативных примеров из пула self.pool_encoded_boards
+#             neg_samples = random.sample(self.pool_encoded_boards, self.NEGATIVES_CNT)
+#             negatives.extend(neg_samples)
 
-        # Добавляем дополнительный контекст, связанный со стокфишем
-        i = random.randint(0, len(self.encoded_boards) - 1)
-        info = self.engine.analyse(self.boards[i], limit=chess.engine.Limit(depth=16))
-        if 'pv' in info:
-            moves = info['pv']
-            prev_board = self.boards[i].copy()
-            for move in moves:
-                prev_board.push(move)
-                target.append(self.encoded_boards[i])
-                context.append(self.board_encoder.encode(prev_board, output_type='numpy'))
-                neg_samples = random.sample(self.pool_encoded_boards, self.NEGATIVES_CNT)
-                negatives.extend(neg_samples)
+#         # Добавляем дополнительный контекст, связанный со стокфишем
+#         i = random.randint(0, len(self.encoded_boards) - 1)
+#         info = self.engine.analyse(self.boards[i], limit=chess.engine.Limit(depth=16))
+#         if 'pv' in info:
+#             moves = info['pv']
+#             prev_board = self.boards[i].copy()
+#             for move in moves:
+#                 prev_board.push(move)
+#                 target.append(self.encoded_boards[i])
+#                 context.append(self.board_encoder.encode(prev_board, output_type='numpy'))
+#                 neg_samples = random.sample(self.pool_encoded_boards, self.NEGATIVES_CNT)
+#                 negatives.extend(neg_samples)
 
-        return (
-            self.board_encoder.make_batch(target),
-            self.board_encoder.make_batch(context),
-            self.board_encoder.make_batch(negatives)
-        )
+#         return (
+#             self.board_encoder.make_batch(target),
+#             self.board_encoder.make_batch(context),
+#             self.board_encoder.make_batch(negatives)
+#         )
+
