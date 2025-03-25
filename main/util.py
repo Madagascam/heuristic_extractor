@@ -284,3 +284,20 @@ def merge_intervals(intervals):
             # Если пересечения нет, просто добавляем текущий интервал
             merged.append(current)
     return merged
+
+def transform_format(moves_intervals):
+    if not moves_intervals:
+        return []
+    new_intervals = []
+    for interval in moves_intervals:
+        move_left, move_right = interval
+        if move_left % 2 == 0:
+            move_left = f"{move_left//2 + 1}W"
+        else:
+            move_left = f"{move_left//2 + 1}B"
+        if move_right % 2 == 0:
+            move_right = f"{move_right//2 + 1}W"
+        else:
+            move_right = f"{move_right//2 + 1}B"
+        new_intervals.append((move_left, move_right))
+    return new_intervals
