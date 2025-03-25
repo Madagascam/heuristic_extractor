@@ -50,7 +50,7 @@ def fork_check(moves, attacked_figures_squares, figure_square):
             return False
     return False
 
-#TODO Нужно чтобы связка определялась вне зависимости от того какая фигура сходила и куда
+
 def bishop_pin_to_king(board: chess.Board, figure_positions):
     # if util.piece_type(board, move.to_square) != BISHOP:
     #     return False
@@ -152,7 +152,7 @@ def stockfish_moments(pgn_file_path, engine_path, threshold=290, analysis_depth=
         board.push(move)
         info = engine.analyse(board, chess.engine.Limit(depth=analysis_depth))
         score = info["score"].white().score(mate_score=10000)
-        print(score)
+        #print(score)
         evaluations.append(score)
 
     heuristic_moments = []
