@@ -5,19 +5,12 @@ import torch.nn as nn
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
-<<<<<<< HEAD
-        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=True)
-        self.bn1 = nn.BatchNorm2d(channels)
-        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=True)
-        self.bn2 = nn.BatchNorm2d(channels)
-=======
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3,
                                stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3,
                                padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(out_channels)
->>>>>>> caf572674f5038347f87e1d23ee79ab4ed48aee6
         self.relu = nn.ReLU(inplace=True)
 
         # Для случая изменения размера или количества каналов
