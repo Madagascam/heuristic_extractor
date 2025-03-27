@@ -59,11 +59,10 @@ class ResidualBlock(nn.Module):
         return out
 
 class Board2Vec(nn.Module):
-    def __init__(self, hidden_dim, output_dim):
+    def __init__(self, hidden_dim, output_dim, input_channel):
         super().__init__()
-        # Входной блок с 9 каналами
         self.initial = nn.Sequential(
-            nn.Conv2d(9, hidden_dim, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(input_channel, hidden_dim, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(hidden_dim),
             nn.ReLU(inplace=True)
         )
@@ -82,7 +81,7 @@ class Board2Vec(nn.Module):
         )
 
     def forward(self, boards: torch.Tensor):
-        # boards: (batch_size, 9, 8, 8)
+        # boards: (batch_size, input_channel, 8, 8)
         x = self.initial(boards)
         x = self.block1(x)
         x = self.block2(x)

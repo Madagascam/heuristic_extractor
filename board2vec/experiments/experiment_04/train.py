@@ -1,15 +1,20 @@
 import torch
-import torch.nn as nn
 import torch.optim as optim
-import pandas as pd
 import os
 import time
-import h5py
-from ..utils.dataloader import TargetContextBoardsLoader
+import pandas as pd
 from ..utils.board_encoder import MatrixEncoder
-from .config import *
-from .model import Board2Vec, WrapperNet
-from torch.utils.data import Dataset, DataLoader
+from ..utils.dataloader import BoardTargetDataloader
+from .config import (
+    hidden_dim,
+    output_dim,
+    learning_rate,
+    weight_dir,
+    step_size,
+    gamma,
+    num_epochs
+)
+from .model import WrapperNet
 
 try:
     import torch_directml
@@ -25,65 +30,126 @@ else:
     device = torch.device("cpu")
 print(f'device: {device}')
 
-class HDF5Dataset(Dataset):
-    def __init__(self, h5_file, device):
-        self.file = h5py.File(h5_file, 'r')
-        self.positions = self.file['position']
-        self.targets = self.file['target']
-        self.device = device
 
-    def __len__(self):
-        return len(self.targets)
+# Функция для постепенной загрузки данных
+def load_data_in_chunks(file_path, chunk_size):
+    data = pd.read_csv(file_path, chunksize=chunk_size)
+    for chunk in data:
+        yield chunk
 
-    def __getitem__(self, idx):
-        pos = torch.tensor(self.positions[idx], device=self.device)
-        tar = torch.tensor(self.targets[idx], device=self.device)
-        return pos, tar
 
-dataset = HDF5Dataset(data_path, device)
+# Загрузка валидационного и тестового датасетов
+val_data = pd.read_csv('D:/Program Files/JupyterLabWorkspace/chess_data/splits/val.csv')
+test_data = pd.read_csv('D:/Program Files/JupyterLabWorkspace/chess_data/splits/test.csv')
 
-import torch
+val_dataloader = BoardTargetDataloader(
+    val_data,
+    MatrixEncoder(),
+    device,
+    batch_size=128
+)
 
-def bce_with_logits_loss(input: torch.Tensor, target: torch.Tensor):
-    max_val = torch.clamp(-input, min=0)
-    loss = input - input * target + max_val + torch.log(torch.exp(-max_val) + torch.exp(-input - max_val))
+test_dataloader = BoardTargetDataloader(
+    test_data,
+    MatrixEncoder(),
+    device,
+    batch_size=128
+)
+
+
+# Определение функции потерь
+def bce_loss(probs: torch.Tensor, target: torch.Tensor, epsilon: float = 1e-7):
+    """
+    Binary Cross-Entropy Loss для готовых вероятностей.
+
+    Args:
+        probs (torch.Tensor): Предсказанные вероятности.
+        target (torch.Tensor): Истинные метки (тензор значений 0 или 1).
+        epsilon (float): Маленькое значение для стабильности вычислений.
+
+    Returns:
+        torch.Tensor: Среднее значение BCE по всем элементам.
+    """
+    probs = torch.clamp(probs, min=epsilon, max=1 - epsilon)
+    loss = -(target * torch.log(probs) + (1 - target) * torch.log(1 - probs))
     return loss.mean()
+
 
 def run_train():
     # Модель
     model = WrapperNet(hidden_dim, output_dim).to(device)
-    weight_path = weight_dir + 'CNN_1.pth'
-    
+    weight_path = weight_dir + 'CNN_2.pth'
+
     # Загрузка весов с учетом устройства
     if os.path.exists(weight_path):
         print('loading weights...')
-        state_dict = torch.load(weight_path, map_location=device, weights_only=True)
+        state_dict = torch.load(weight_path, map_location=device)
         model.load_state_dict(state_dict)
 
-    # Даталоадер
-    dataloader = DataLoader(dataset, batch_size=128)
-
     # Оптимизатор
-    optimizer = optim.Adadelta(model.parameters())
+    optimizer = optim.Adadelta(model.parameters(), lr=learning_rate)
 
     # Планировщик
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
     # Цикл обучения
+    chunk_size = 500  # Размер части данных, загружаемой за одну эпоху
+    train_data_path = 'D:/Program Files/JupyterLabWorkspace/chess_data/splits/train.csv'
+    data_generator = load_data_in_chunks(train_data_path, chunk_size)
     for epoch in range(num_epochs):
-        total_loss = 0
         start_time = time.time()
+
+        # Загрузка части тренировочных данных
+        chunk = next(data_generator, None)
+        if chunk is None:
+            raise ValueError("No more data chunks available.")
+
+        dataloader = BoardTargetDataloader(
+            chunk,
+            MatrixEncoder(),
+            device,
+            batch_size=128
+        )
+
+        cnt = 0
         for boards, targets in dataloader:
+            print(f'{(cnt := cnt + 1)}/{len(dataloader)}', end='\r')
             output = model(boards)
-            loss = bce_with_logits_loss(output, targets)
+            loss = bce_loss(output, targets)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
+
         scheduler.step()
         end_time = time.time()
 
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {total_loss}, "
-              f"lr: {scheduler.get_last_lr()}, time: {end_time-start_time:.2f}")
+        # Валидация
+        model.eval()
+        val_loss = 0
+        val_cnt = 0
+        with torch.no_grad():
+            for boards, targets in val_dataloader:
+                output = model(boards)
+                val_loss += bce_loss(output, targets).item()
+                val_cnt += 1
+        val_loss /= val_cnt
+        model.train()
 
-        torch.save(model.state_dict(), weight_dir + f'CNN_{epoch + 1}_{int(total_loss)}.pth')
+        print(f"Epoch [{epoch+1}/{num_epochs}], "
+              f"Val Loss: {val_loss}, lr: {scheduler.get_last_lr()}, "
+              f"time: {end_time-start_time:.2f}")
+
+        torch.save(model.state_dict(),
+                   weight_dir + f'CNN_{epoch + 1}_{(val_loss):.4f}.pth')
+
+    # Тестирование
+    model.eval()
+    test_loss = 0
+    test_cnt = 0
+    with torch.no_grad():
+        for boards, targets in test_dataloader:
+            output = model(boards)
+            test_loss += bce_loss(output, targets).item()
+            test_cnt += 1
+    test_loss /= test_cnt
+    print(f"Test Loss: {test_loss}")

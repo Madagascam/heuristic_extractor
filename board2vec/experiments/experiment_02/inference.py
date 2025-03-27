@@ -18,10 +18,10 @@ device = torch.device('cpu')
 print(f'device: {device}')
 
 # load_path - путь к весам обученной модели
-model = Board2Vec(hidden_dim, output_dim).to(device)
+model = Board2Vec(hidden_dim, output_dim, 9).to(device)
 model.load_state_dict(torch.load(weight_dir + 'CNN_3.pth', map_location=device))
 model.eval()
-encoder = MatrixEncoder()
+encoder = MatrixEncoder(color='one', meta=True)
 
 
 def board2vec(boards: List[chess.Board]):
