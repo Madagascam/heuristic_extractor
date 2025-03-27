@@ -9,21 +9,33 @@ from typing import List
 
 cpu = torch.device('cpu')
 device = torch_directml.device()
-device = cpu
 # print(f'device: {device}')
 
-# load_path - путь к весам обученной модели
-wrapper = WrapperNet(hidden_dim, output_dim)
-wrapper.load_state_dict(torch.load(weight_dir + 'CNN_C.pth', map_location=cpu))
+encoder = MatrixEncoder(color='each', meta=False)
+
+wrapper = WrapperNet(hidden_dim, output_dim, encoder.get_encoded_shape()[0])
+wrapper.load_state_dict(torch.load(weight_dir + 'CNN_E.pth', map_location=cpu))
 model = wrapper.board2vec.to(device)
 model.eval()
-encoder = MatrixEncoder(color='each', meta=False)
+
+wrapper.to(device)
+wrapper.eval()
 
 
 def board2vec(boards: List[chess.Board]):
     with torch.no_grad():
-        targets = torch.tensor(np.array([encoder.encode(board) for board in boards])).to(device)
+        targets = torch.tensor(
+            np.array([encoder.encode(board) for board in boards])
+        ).to(device)
         return model(targets).squeeze().detach().cpu().numpy()
+
+
+def is_interesting(boards: List[chess.Board]):
+    with torch.no_grad():
+        targets = torch.tensor(
+            np.array([encoder.encode(board) for board in boards])
+        ).to(device)
+        return wrapper(targets).squeeze().detach().cpu().numpy()
 
 
 if __name__ == '__main__':

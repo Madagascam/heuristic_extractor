@@ -75,15 +75,11 @@ class MatrixEncoder(BoardEncoder):
         self.other = 3 if self.meta else 0
 
 
-    def encode(self, board: chess.Board) -> Union[
-        Tuple[torch.Tensor, torch.Tensor],
-        Tuple[np.ndarray, np.ndarray],
-        Tuple[list, list]
-    ]:
+    def encode(self, board: chess.Board) -> np.ndarray:
         # 6 или 12 каналов для фигур [+ канал на право рокировки + взятие на проходе + ход пешки на две клетки вперед]
         board_state = np.zeros((self.figures + self.other, 8, 8), dtype=np.float32)
 
-        # 1. Кодируем состояние доски (6 каналов)
+        # 1. Кодируем состояние доски
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece is not None:

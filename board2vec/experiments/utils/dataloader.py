@@ -4,8 +4,10 @@ import random
 import chess.engine
 import torch
 import numpy as np
+import pandas as pd
 from typing import List
 from .board_encoder import BoardEncoder
+
 
 class TargetContextBoardsLoader:
     def __init__(
@@ -17,7 +19,7 @@ class TargetContextBoardsLoader:
             subset_size: int,
             negatives_cnt: int,
             device
-        ):
+    ):
         self.games = [game for game in games if self.check_game(game)]
         self.board_encoder = board_encoder
         self.WINDOW_SIZE = window_size
@@ -173,3 +175,67 @@ class TargetContextBoardsLoader:
 #             self.board_encoder.make_batch(negatives)
 #         )
 
+
+class BoardTargetDataloader:
+    def __init__(
+        self, data: pd.DataFrame,
+        board_encoder,
+        device,
+        batch_size: int = 128
+    ):
+        self.data = data.copy()
+        self.data['moves'] = self.data['moves'].str.split()
+        self.board_encoder = board_encoder
+        self.batch_size = batch_size
+        self._indices = np.random.permutation(len(data))
+        self._current = 0
+        self.buffer = []
+        # Calculate total number of moves across all games
+        self.length = self.data['moves'].apply(len).sum()
+        self.device = device
+
+    def __len__(self):
+        return int(self.length) // int(self.batch_size)
+
+    def __iter__(self):
+        self._indices = np.random.permutation(len(self.data))
+        self._current = 0
+        self.buffer = []
+        return self
+
+    def __next__(self):
+        while len(self.buffer) < self.batch_size:
+            if self._current >= len(self.data):
+                if not self.buffer:
+                    raise StopIteration
+                else:
+                    break  # Return remaining elements
+            idx = self._indices[self._current]
+            self._current += 1
+            row = self.data.iloc[idx]
+            moves = row['moves']
+            try:
+                start, end = map(int, row['marks'].split(','))
+            except (AttributeError, ValueError):
+                start = end = 0
+            board = chess.Board()
+            party_boards = []
+            for i, move_str in enumerate(moves):
+                move = chess.Move.from_uci(move_str)
+                board.push(move)
+                encoded = self.board_encoder.encode(board)
+                label = 1 if start <= i < end else 0
+                party_boards.append((encoded, label))
+            self.buffer.extend(party_boards)
+
+        batch_size = min(self.batch_size, len(self.buffer))
+        batch_data = self.buffer[:batch_size]
+        self.buffer = self.buffer[batch_size:]
+
+        features = np.stack([d[0] for d in batch_data])
+        labels = np.array([d[1] for d in batch_data])
+
+        return (
+            torch.tensor(features, device=self.device),
+            torch.tensor(labels, device=self.device)
+        )

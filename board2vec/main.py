@@ -6,6 +6,7 @@ import chess
 # Таблицу можно скачать здесь: https://disk.yandex.ru/d/q1G0W-taR0TSxw
 data_path = 'C:/Users/matvey/Documents/chess_data/full_labeled.csv'
 
+<<<<<<< HEAD
 data = pd.read_csv(data_path)
 boards = []
 for game in data['moves'].str.split().head(100):
@@ -20,3 +21,7 @@ main(boards, board2vec(boards))
 
 # from experiments.experiment_02.train import run_train
 # run_train()
+=======
+from experiments.experiment_04.train import run_train
+run_train()
+>>>>>>> caf572674f5038347f87e1d23ee79ab4ed48aee6

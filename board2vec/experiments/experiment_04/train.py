@@ -38,25 +38,6 @@ def load_data_in_chunks(file_path, chunk_size):
         yield chunk
 
 
-# Загрузка валидационного и тестового датасетов
-val_data = pd.read_csv('D:/Program Files/JupyterLabWorkspace/chess_data/splits/val.csv')
-test_data = pd.read_csv('D:/Program Files/JupyterLabWorkspace/chess_data/splits/test.csv')
-
-val_dataloader = BoardTargetDataloader(
-    val_data,
-    MatrixEncoder(),
-    device,
-    batch_size=128
-)
-
-test_dataloader = BoardTargetDataloader(
-    test_data,
-    MatrixEncoder(),
-    device,
-    batch_size=128
-)
-
-
 # Определение функции потерь
 def bce_loss(probs: torch.Tensor, target: torch.Tensor, epsilon: float = 1e-7):
     """
@@ -75,10 +56,13 @@ def bce_loss(probs: torch.Tensor, target: torch.Tensor, epsilon: float = 1e-7):
     return loss.mean()
 
 
+encoder = MatrixEncoder(color='each', meta=False)
+
+
 def run_train():
     # Модель
-    model = WrapperNet(hidden_dim, output_dim).to(device)
-    weight_path = weight_dir + 'CNN_2.pth'
+    model = WrapperNet(hidden_dim, output_dim, input_channel=encoder.get_encoded_shape()[0]).to(device)
+    weight_path = weight_dir + 'CNN_E.pth'
 
     # Загрузка весов с учетом устройства
     if os.path.exists(weight_path):
@@ -99,15 +83,33 @@ def run_train():
     for epoch in range(num_epochs):
         start_time = time.time()
 
+        # Загрузка валидационного и тестового датасетов
+        val_data = pd.read_csv('D:/Program Files/JupyterLabWorkspace/chess_data/splits/val.csv')
+        test_data = pd.read_csv('D:/Program Files/JupyterLabWorkspace/chess_data/splits/test.csv')
+
+        val_dataloader = BoardTargetDataloader(
+            data=val_data,
+            board_encoder=encoder,
+            device=device,
+            batch_size=128
+        )
+
+        test_dataloader = BoardTargetDataloader(
+            data=test_data,
+            board_encoder=encoder,
+            device=device,
+            batch_size=128
+        )
+
         # Загрузка части тренировочных данных
         chunk = next(data_generator, None)
         if chunk is None:
             raise ValueError("No more data chunks available.")
 
         dataloader = BoardTargetDataloader(
-            chunk,
-            MatrixEncoder(),
-            device,
+            data=chunk,
+            board_encoder=encoder,
+            device=device,
             batch_size=128
         )
 

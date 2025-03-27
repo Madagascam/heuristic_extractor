@@ -1,7 +1,7 @@
 """Архитектура модели"""
 
 # Размер скрытого слоя
-hidden_dim = 512
+hidden_dim = 256
 
 # Размер готового эмбеддинга
 output_dim = 128
@@ -16,12 +16,9 @@ step_size = 1
 gamma = 0.95
 
 # Количество эпох обучения
-num_epochs = 20
+num_epochs = 50
 
 """Пути для сохранения файлов"""
 
-# Путь к размеченным данным
-data_path = 'C:/Users/matvey/Documents/chess_data/small_labeled.h5'
-
 # Директория для сохранения весов
-weight_dir = 'C:/Users/matvey/workspace/heuristic_extractor/board2vec/experiments/experiment_04/weights/'
+weight_dir = 'D:/Program Files/JupyterLabWorkspace/heuristic_extractor/board2vec/experiments/experiment_04/weights/'
