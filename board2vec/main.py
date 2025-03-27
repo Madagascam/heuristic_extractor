@@ -3,6 +3,5 @@
 
 # main(board2vec)
 
-from experiments.experiment_02.train import run_train
-
+from experiments.experiment_04.train import run_train
 run_train()

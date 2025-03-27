@@ -14,7 +14,7 @@ device = torch_directml.device()
 encoder = MatrixEncoder(color='each', meta=False)
 
 wrapper = WrapperNet(hidden_dim, output_dim, encoder.get_encoded_shape()[0])
-wrapper.load_state_dict(torch.load(weight_dir + 'CNN_C.pth', map_location=cpu))
+wrapper.load_state_dict(torch.load(weight_dir + 'CNN_E.pth', map_location=cpu))
 model = wrapper.board2vec.to(device)
 model.eval()
 
