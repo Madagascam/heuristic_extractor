@@ -22,7 +22,7 @@ class SparseEncoder(BoardEncoder):
     def encode(
             self,
             board: chess.Board
-        ) -> Union[torch.Tensor, np.ndarray, list]:
+        ) -> np.ndarray:
         # 1. Кодируем состояние доски через битовые карты (12 карт: 6 типов фигур × 2 цвета)
         piece_types = [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN, chess.KING]
         colors = [chess.WHITE, chess.BLACK]
