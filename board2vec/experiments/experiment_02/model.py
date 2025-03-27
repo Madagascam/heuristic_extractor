@@ -61,13 +61,12 @@ class ResidualBlock(nn.Module):
 class Board2Vec(nn.Module):
     def __init__(self, hidden_dim, output_dim):
         super().__init__()
-        # Входной блок с 12 каналов (6 фигур × 2 цвета)
+        # Входной блок с 9 каналами
         self.initial = nn.Sequential(
-            nn.Conv2d(12, hidden_dim, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(9, hidden_dim, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(hidden_dim),
             nn.ReLU(inplace=True)
         )
-        
         # Резидуальные блоки
         self.block1 = ResidualBlock(hidden_dim)
         self.block2 = ResidualBlock(hidden_dim)
@@ -76,22 +75,19 @@ class Board2Vec(nn.Module):
         # Глобальный пуллинг и финальные слои
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Sequential(
-            nn.Linear(hidden_dim + 6, hidden_dim),  # +6 дополнительных признаков
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(inplace=True),
             nn.Dropout(0.3),
             nn.Linear(hidden_dim, output_dim)
         )
 
-    def forward(self, boards: torch.Tensor, adv: torch.Tensor):
-        # boards: (batch_size, 12, 8, 8)
+    def forward(self, boards: torch.Tensor):
+        # boards: (batch_size, 9, 8, 8)
         x = self.initial(boards)
         x = self.block1(x)
         x = self.block2(x)
         x = self.block3(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        
-        # Конкатенация с дополнительными признаками
-        x = torch.cat([x, adv], dim=1)
         x = self.fc(x)
         return x

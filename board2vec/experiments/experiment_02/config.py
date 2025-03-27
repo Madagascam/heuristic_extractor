@@ -16,7 +16,7 @@ step_size = 30
 gamma = 0.95
 
 # Количество эпох обучения
-num_epochs = 10000
+num_epochs = 5
 
 """Настройки даталоадера"""
 
@@ -24,10 +24,10 @@ num_epochs = 10000
 WINDOW_SIZE = 8
 
 # Количество итераций в эпохе (количество игр, участвующих в эпохе)
-GAME_COUNT = 50
+GAME_COUNT = 1024
 
 # Размер батча (количество пар, получаемых из игры)
-PAIR_CNT = 50
+PAIR_CNT = 128
 
 # Размер подмножества игр, которое участвует в генерации негативных примеров
 SUBSET_SIZE = 1000
@@ -38,7 +38,7 @@ NEGATIVES_COUNT = 5
 """Пути для сохранения файлов"""
 
 # Путь к размеченным данным (https://disk.yandex.ru/d/z1rfxW7UZmnAhw)
-data_path = 'C:/Users/matvey/workspace/heuristic_extractor/labeled.csv'
+data_path = 'C:/Users/matvey/Documents/chess_data/games.csv'
 
 # Директория для сохранения весов
 weight_dir = 'C:/Users/matvey/workspace/heuristic_extractor/board2vec/experiments/experiment_02/weights/'

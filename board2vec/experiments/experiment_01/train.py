@@ -9,7 +9,7 @@ from .config import *
 from .model import Board2Vec
 
 data = pd.read_csv(data_path, header=0)
-games_series = data['moves'].str.split(' ')     
+games_series = data['moves'].str.strip().str.split()
 
 
 def criterion(target_embed: torch.Tensor, context_embed: torch.Tensor, negatives_embed: torch.Tensor):
