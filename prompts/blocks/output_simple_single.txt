@@ -1,0 +1,2 @@
+Output ONLY a valid JSON list containing exactly two integers: [start_halfmove, end_halfmove]
+Do not include any other text, explanations, or markdown formatting.

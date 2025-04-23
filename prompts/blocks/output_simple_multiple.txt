@@ -1,0 +1,3 @@
+Output ONLY a valid JSON list of lists, where each inner list contains exactly two integers: [[start_halfmove, end_halfmove], ...]
+If no interesting segments are found, output an empty list: []
+Do not include any other text, explanations, or markdown formatting.

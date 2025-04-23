@@ -1,0 +1,4 @@
+Output ONLY a valid JSON list of lists, where each inner list contains exactly three integers: [[start_halfmove, end_halfmove, score], ...]
+The score must be an integer from 1 to 10 (1=minor, 10=critical/brilliant).
+If no interesting segments are found, output an empty list: []
+Do not include any other text, explanations, or markdown formatting.

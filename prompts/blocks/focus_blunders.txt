@@ -1,0 +1,4 @@
+Focus on segments containing major blunders or missed opportunities:
+- Moves leading to immediate significant material loss (Queen, Rook, etc.).
+- Missing a forced checkmate in 1-2 moves.
+- Overlooking a simple tactic from the opponent.

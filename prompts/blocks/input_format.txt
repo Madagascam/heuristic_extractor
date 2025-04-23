@@ -1,0 +1,1 @@
+The game is provided as a list of moves with half-move indices (starting from 0).

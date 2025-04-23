@@ -1,0 +1,3 @@
+Output ONLY a valid JSON list containing exactly three elements: [start_halfmove, end_halfmove, reason_string]
+The 'reason_string' should be a concise explanation (max 20 words) of why this segment is interesting based on the criteria provided.
+Do not include any other text, explanations, or markdown formatting.

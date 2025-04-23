@@ -1,0 +1,4 @@
+Output ONLY a valid JSON list of lists, where each inner list contains exactly four elements: [[start_halfmove, end_halfmove, score, category], ...]
+The score must be an integer from 1 to 10. The category must be one of the following strings: {categories}.
+If no interesting segments are found, output an empty list: []
+Do not include any other text, explanations, or markdown formatting.

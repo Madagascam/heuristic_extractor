@@ -1,0 +1,25 @@
+id,error,prediction,target,config
+2PTZFuPj,,"[50, 56]","[49, 57]",stratified_pgn
+VVx9xk9x,,"[52, 56]","[52, 56]",stratified_pgn
+Vex0WCwA,,"[50, 57]","[51, 55]",stratified_pgn
+UjXuVHza,,"[20, 26]","[28, 34]",stratified_pgn
+U7kOOIbK,,"[48, 52]","[49, 53]",stratified_pgn
+C1wkxyOV,,"[50, 56]","[50, 56]",stratified_pgn
+2PTZFuPj,,"[72, 83]","[49, 57]",stratified_csv
+VVx9xk9x,,"[41, 47]","[52, 56]",stratified_csv
+Vex0WCwA,,"[44, 50]","[51, 55]",stratified_csv
+UjXuVHza,,"[17, 23]","[28, 34]",stratified_csv
+U7kOOIbK,,"[37, 43]","[49, 53]",stratified_csv
+C1wkxyOV,,"[26, 32]","[50, 56]",stratified_csv
+2PTZFuPj,,"[51, 57]","[49, 57]",random_pgn
+VVx9xk9x,,"[51, 55]","[52, 56]",random_pgn
+Vex0WCwA,,"[50, 57]","[51, 55]",random_pgn
+UjXuVHza,,"[28, 33]","[28, 34]",random_pgn
+U7kOOIbK,,"[58, 62]","[49, 53]",random_pgn
+C1wkxyOV,,"[51, 55]","[50, 56]",random_pgn
+2PTZFuPj,,"[67, 75]","[49, 57]",random_csv
+VVx9xk9x,,"[35, 55]","[52, 56]",random_csv
+Vex0WCwA,,"[35, 43]","[51, 55]",random_csv
+UjXuVHza,,"[17, 28]","[28, 34]",random_csv
+U7kOOIbK,,"[39, 54]","[49, 53]",random_csv
+C1wkxyOV,,"[27, 37]","[50, 56]",random_csv

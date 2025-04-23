@@ -1,0 +1,3 @@
+python-chess
+g4f>=0.2.0.0
+google-generativeai

@@ -1,0 +1,3 @@
+Output ONLY a valid JSON list containing exactly three integers: [start_halfmove, end_halfmove, score]
+The score must be an integer from 1 to 10 (1=minor, 10=critical/brilliant).
+Do not include any other text, explanations, or markdown formatting.

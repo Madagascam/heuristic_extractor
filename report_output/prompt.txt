@@ -1,0 +1,106 @@
+You are a chess analysis assistant.
+
+Your task is to identify all interesting segments (each max 20 half-moves) in the provided chess game based on the following criteria.
+
+Focus on segments that are visually interesting and easy to understand for a general audience:
+- Clear blunders (losing major pieces).
+- Obvious tactical shots (forks, simple sacrifices).
+- Checkmate sequences.
+- Moments where the game dramatically shifts.
+Avoid subtle positional play unless it ends spectacularly.
+
+The game is provided as a list of moves with half-move indices (starting from 0).
+
+Output ONLY a valid JSON list of lists, where each inner list contains exactly three integers: [[start_halfmove, end_halfmove, score], ...]
+The score must be an integer from 1 to 10 (1=minor, 10=critical/brilliant).
+If no interesting segments are found, output an empty list: []
+Do not include any other text, explanations, or markdown formatting.
+
+List of moves:
+0. 1. d4
+1. 1... g6
+2. 2. c4
+3. 2... Bg7
+4. 3. e4
+5. 3... c5
+6. 4. d5
+7. 4... d6
+8. 5. Nc3
+9. 5... e6
+10. 6. Bd3
+11. 6... Ne7
+12. 7. Nf3
+13. 7... O-O
+14. 8. O-O
+15. 8... Nd7
+16. 9. Bg5
+17. 9... h6
+18. 10. Be3
+19. 10... e5
+20. 11. Qd2
+21. 11... Kh7
+22. 12. g4
+23. 12... Nf6
+24. 13. h3
+25. 13... Nfg8
+26. 14. Nh2
+27. 14... Kh8
+28. 15. h4
+29. 15... f5
+30. 16. f3
+31. 16... Rf7
+32. 17. a3
+33. 17... Bd7
+34. 18. b4
+35. 18... b6
+36. 19. b5
+37. 19... Nc8
+38. 20. exf5
+39. 20... gxf5
+40. 21. g5
+41. 21... Nce7
+42. 22. gxh6
+43. 22... Bf6
+44. 23. h5
+45. 23... Rh7
+46. 24. Bg5
+47. 24... Nxd5
+48. 25. Nxd5
+49. 25... Bxg5
+50. 26. Qc2
+51. 26... Nxh6
+52. 27. f4
+53. 27... Bxf4
+54. 28. Rxf4
+55. 28... exf4
+56. 29. Nf3
+57. 29... Qg8+
+58. 30. Kf1
+59. 30... Qg3
+60. 31. Qf2
+61. 31... Ng4
+62. 32. Qxg3
+63. 32... fxg3
+64. 33. Nf4
+65. 33... Rg8
+66. 34. Nh4
+67. 34... Rg5
+68. 35. Kg2
+69. 35... Bc8
+70. 36. Be2
+71. 36... Ne3+
+72. 37. Kg1
+73. 37... Bb7
+74. 38. Ra2
+75. 38... Ng4
+76. 39. Rd2
+77. 39... Rgxh5
+78. 40. Rxd6
+79. 40... Rxh4
+80. 41. Ng6+
+81. 41... Kg8
+82. 42. Nxh4
+83. 42... Ne5
+
+
+JSON Output:
