@@ -5,6 +5,33 @@ import os
 
 app = FastAPI()
 
+def create_pgn(moves_str, output_file):
+    """Преобразует последовательность ходов в pgn-файл
+    
+    Пример использования:
+    moves_str = "e2e4 c7c6 f2f4 d7d5 e4d5 c6d5 g1f3 b8c6"
+    output_file = "output.pgn"
+    create_pgn(moves_str, output_file)
+    """
+    pgn_header = "[Event \"?\"]\n[Site \"?\"]\n[Date \"????.??.??\"]\n[Round \"?\"]\n[White \"?\"]\n[Black \"?\"]\n[Result \"*\"]\n\n"
+    moves = moves_str.split()
+
+    move_number = 1
+    pgn_moves = []
+    for i in range(0, len(moves), 2):
+        if i + 1 < len(moves):
+            pgn_moves.append(f"{move_number}. {moves[i]} {moves[i+1]}")
+            move_number += 1
+        else:
+            pgn_moves.append(f"{move_number}. {moves[i]}")
+
+    pgn_content = pgn_header + " ".join(pgn_moves) + " *"
+
+    # Записываем в файл
+    with open(output_file, 'w') as f:
+        f.write(pgn_content)
+
+
 @app.post("/upload-pgn/")
 async def upload_pgn(file: UploadFile = File(...)):
     try:

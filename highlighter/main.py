@@ -161,6 +161,6 @@ def find_highlight(pgn_path):
 
     # print(start, end)
     return {
-        'start': float(start / 2 + 1),
-        'end': float(end / 2 + 1)
+        'start': start,
+        'end': end
     }
