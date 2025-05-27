@@ -3,6 +3,7 @@ import chess.pgn  # Для работы с PGN файлами шахматных
 import numpy as np  # Для работы с массивами и математическими операциями
 import torch  # Для работы с PyTorch моделями
 from scipy.signal import find_peaks, peak_widths  # Для поиска пиков и их характеристик
+from pathlib import Path
 
 # Импорты пользовательских модулей
 from .encoder import MatrixEncoder  # Кодировщик досок
@@ -125,13 +126,16 @@ def find_longest_segment_of_ones(arr):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Загрузка предобученной модели Board2Vec
+weights_dir = Path(__file__).parent / 'weights'
 board2vec = Board2Vec(128, 64)
-board2vec.load_state_dict(torch.load('C:/Users/matvey/workspace/FriflexChess/highlighter/highlighter/checkpoints/board2vec_epoch1.pt', map_location=device))
+board2vec_weights = weights_dir / 'board2vec.pt'
+board2vec.load_state_dict(torch.load(board2vec_weights.absolute(), map_location=device))
 board2vec.eval()
 
 # Загрузка предобученной модели BinaryClassifierTransformer
 model = BinaryClassifierTransformer(64).to(device)
-model.load_state_dict(torch.load('C:/Users/matvey/workspace/FriflexChess/highlighter/highlighter/checkpoints/transformer_epoch50.pt', map_location=device))
+transformer_weights = weights_dir / 'transformer.pt'
+model.load_state_dict(torch.load(transformer_weights.absolute(), map_location=device))
 
 
 def find_highlight(pgn_path):
